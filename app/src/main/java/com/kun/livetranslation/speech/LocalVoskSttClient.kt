@@ -116,7 +116,7 @@ class LocalVoskSttClient(private val registry: VoskModelRegistry) {
  */
 class VoskStreamingSession internal constructor(
     private val recognizer: Recognizer
-) {
+) : SttSession {
     @Volatile private var closed = false
 
     /**
@@ -125,24 +125,24 @@ class VoskStreamingSession internal constructor(
      * silence/segment boundary) plus the current text — if `accepted`, [text]
      * is the finalized segment; otherwise it's the latest partial.
      */
-    fun feed(pcm: ByteArray, length: Int = pcm.size): FeedResult {
-        if (closed) return FeedResult("", accepted = false)
+    override fun feed(pcm: ByteArray, length: Int): SttFeedResult {
+        if (closed) return SttFeedResult("", accepted = false)
         val accepted = try {
             recognizer.acceptWaveForm(pcm, length)
         } catch (t: Throwable) {
             Log.w("VoskStreamingSession", "acceptWaveForm failed", t)
-            return FeedResult("", accepted = false)
+            return SttFeedResult("", accepted = false)
         }
         val text = if (accepted) {
             LocalVoskSttClient.extractText(recognizer.result)
         } else {
             LocalVoskSttClient.extractText(recognizer.partialResult)
         }
-        return FeedResult(text, accepted)
+        return SttFeedResult(text, accepted)
     }
 
     /** Flushes any buffered audio and returns the final remaining text. */
-    fun finish(): String {
+    override fun finish(): String {
         if (closed) return ""
         return try {
             LocalVoskSttClient.extractText(recognizer.finalResult)
@@ -152,16 +152,10 @@ class VoskStreamingSession internal constructor(
         }
     }
 
-    fun close() {
+    override fun close() {
         if (closed) return
         closed = true
         try { recognizer.close() } catch (_: Throwable) {}
     }
 
-    data class FeedResult(
-        /** Current text — segment if [accepted], partial otherwise. */
-        val text: String,
-        /** True when Vosk hit a silence boundary and emitted a finalized segment. */
-        val accepted: Boolean
-    )
 }

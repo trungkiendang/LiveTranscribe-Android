@@ -16,6 +16,9 @@ data class CaptionSettings(
     val audioSource: AudioSource = AudioSource.MIC,
     val sttBackend: SttBackend = SttBackend.LOCAL_VOSK,
     val translationBackend: TranslationBackend = TranslationBackend.ML_KIT,
+    /** Google AI Studio key + model, used by the Gemini translation and speech engines. */
+    val geminiApiKey: String = "",
+    val geminiModel: String = DEFAULT_GEMINI_MODEL,
     val sttBaseUrl: String = DEFAULT_STT_URL,
     val overlayWidthDp: Int = DEFAULT_OVERLAY_WIDTH_DP,
     val overlayHeightDp: Int = DEFAULT_OVERLAY_HEIGHT_DP,
@@ -37,6 +40,7 @@ data class CaptionSettings(
     companion object {
         val DEFAULT_BASE_URL: String = BuildConfig.DEFAULT_TRANSLATE_URL
         val DEFAULT_STT_URL: String = BuildConfig.DEFAULT_STT_URL
+        const val DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
         const val DEFAULT_OVERLAY_WIDTH_DP = 320
         const val DEFAULT_OVERLAY_HEIGHT_DP = 180
         const val MIN_OVERLAY_WIDTH_DP = 180

@@ -41,6 +41,9 @@ class StreamingSttEngine(
     private val mediaProjection: MediaProjection?,
     private val languageCode: String,
     private val localSttClient: LocalVoskSttClient,
+    /** When set, speech goes to Gemini instead of Vosk ([geminiLanguageHint] null = detect). */
+    private val geminiApi: com.kun.livetranslation.ai.GeminiApi? = null,
+    private val geminiLanguageHint: String? = null,
     private val scope: CoroutineScope,
     private val onResult: (SpeechResult) -> Unit,
     private val onError: (String?) -> Unit = {}
@@ -51,7 +54,7 @@ class StreamingSttEngine(
 
     private var audioRecord: AudioRecord? = null
     private var captureJob: Job? = null
-    private var session: VoskStreamingSession? = null
+    private var session: SttSession? = null
 
     @Volatile private var running = false
     @Volatile private var paused = false
@@ -101,7 +104,11 @@ class StreamingSttEngine(
     }
 
     private suspend fun startInternal() {
-        val localSession = localSttClient.openSession(languageCode, SAMPLE_RATE)
+        val localSession: SttSession? = if (geminiApi != null) {
+            GeminiSttSession(geminiApi, geminiLanguageHint, scope) { text -> onResult(SpeechResult(text, isFinal = true)) }
+        } else {
+            localSttClient.openSession(languageCode, SAMPLE_RATE)
+        }
         if (localSession == null) {
             onError(
                 "No on-device model installed for '$languageCode'. " +

@@ -29,6 +29,7 @@ import com.kun.livetranslation.settings.AudioSource
 import com.kun.livetranslation.settings.CaptionSettings
 import com.kun.livetranslation.settings.LocaleMap
 import com.kun.livetranslation.settings.SttBackend
+import com.kun.livetranslation.settings.TranslationBackend
 import com.kun.livetranslation.speech.AndroidSpeechRecognizerManager
 import com.kun.livetranslation.speech.RecognitionStatus
 import com.kun.livetranslation.speech.SpeechEngine
@@ -188,6 +189,10 @@ class CaptionForegroundService : Service() {
             val sttLanguageCode = settings.sourceLanguageCode.ifBlank { "en" }
             val localeForSpeechRec = LocaleMap.bcp47(sttLanguageCode)
 
+            if (settings.sttBackend == SttBackend.GEMINI && settings.geminiApiKey.isBlank()) {
+                failAndStop("Add your Google AI Studio API key in Advanced settings to use Gemini.")
+                return@launch
+            }
             if (settings.sttBackend == SttBackend.LOCAL_VOSK) {
                 val model = app.container.voskRegistry.installedModelFor(sttLanguageCode)
                 if (model == null) {
@@ -213,9 +218,12 @@ class CaptionForegroundService : Service() {
                 }
             }
 
+            // Each Gemini call is a paid/rate-limited cloud request: translate partials less often.
+            val translateCadenceMs =
+                if (settings.translationBackend == TranslationBackend.GEMINI) GEMINI_TRANSLATE_MS else TRANSLATE_DEBOUNCE_MS
             launch(Dispatchers.IO) {
                 translateRequests
-                    .sample(TRANSLATE_DEBOUNCE_MS)
+                    .sample(translateCadenceMs)
                     .collect {
                         while (true) {
                             val final = pendingFinalTranslations.poll() ?: break
@@ -279,7 +287,7 @@ class CaptionForegroundService : Service() {
             //       system  → legacy batch SystemAudioEngine (posts WAVs to remote Whisper)
             //       mic     → AndroidSpeechRecognizerManager (Google recognizer; kept as fallback)
             val backend = settings.sttBackend
-            val useStreaming = backend == SttBackend.LOCAL_VOSK
+            val useStreaming = backend == SttBackend.LOCAL_VOSK || backend == SttBackend.GEMINI
 
             if (useStreaming) {
                 val engine = StreamingSttEngine(
@@ -288,6 +296,8 @@ class CaptionForegroundService : Service() {
                     mediaProjection = mediaProjection,
                     languageCode = sttLanguageCode,
                     localSttClient = app.container.localVoskClient,
+                    geminiApi = if (backend == SttBackend.GEMINI) app.container.geminiApi else null,
+                    geminiLanguageHint = if (settings.autoDetectSource) null else sttLanguageCode,
                     scope = serviceScope,
                     onResult = onSpeechResult,
                     onError = errorSink
@@ -569,6 +579,7 @@ class CaptionForegroundService : Service() {
         private const val CHANNEL_ID = "caption_channel"
         private const val NOTIF_ID = 2001
         private const val TRANSLATE_DEBOUNCE_MS = 300L
+        private const val GEMINI_TRANSLATE_MS = 1500L
         private const val NO_LINE_ID = -1L
     }
 }

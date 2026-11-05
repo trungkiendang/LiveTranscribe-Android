@@ -273,6 +273,11 @@ fun MainScreen(
                     onApplyProfile = viewModel::applyProfile,
                     onSaveHistoryChange = viewModel::updateSaveHistory,
                 )
+                GeminiCard(
+                    apiKey = ui.settings.geminiApiKey,
+                    model = ui.settings.geminiModel,
+                    onSave = viewModel::updateGemini
+                )
                 UiLanguageCard(
                     languageCode = ui.uiLanguageCode,
                     busy = ui.uiLocalizationBusy,
@@ -625,6 +630,20 @@ private fun AudioSourceCard(
                     selected = ui.settings.sttBackend == SttBackend.LOCAL_VOSK,
                     onClick = { viewModel.updateSttBackend(SttBackend.LOCAL_VOSK) },
                     modifier = Modifier.weight(1f)
+                )
+                ChoiceChip(
+                    label = t["Gemini"],
+                    icon = Icons.Filled.Cloud,
+                    selected = ui.settings.sttBackend == SttBackend.GEMINI,
+                    onClick = { viewModel.updateSttBackend(SttBackend.GEMINI) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (ui.settings.sttBackend == SttBackend.GEMINI) {
+                Text(
+                    text = t["Sends your speech to Google AI Studio (Gemini) one phrase at a time. Needs an API key in Advanced settings."],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
@@ -1260,6 +1279,13 @@ private fun ServerCard(
                     onClick = { onSelectTranslationBackend(TranslationBackend.LIBRE_TRANSLATE) },
                     modifier = Modifier.weight(1f)
                 )
+                ChoiceChip(
+                    label = t["Gemini"],
+                    icon = Icons.Filled.Translate,
+                    selected = ui.settings.translationBackend == TranslationBackend.GEMINI,
+                    onClick = { onSelectTranslationBackend(TranslationBackend.GEMINI) },
+                    modifier = Modifier.weight(1f)
+                )
                 // Only offered on Samsung phones, where One UI may provide a system translator.
                 if (SystemTranslationRepository.isOfferedOnThisDevice()) {
                     ChoiceChip(
@@ -1275,6 +1301,12 @@ private fun ServerCard(
             if (ui.settings.translationBackend == TranslationBackend.ML_KIT) {
                 Text(
                     text = t["Google ML Kit translates fully on this device — no server required. The first time you use a language pair, a ~30 MB model downloads and is then cached offline forever."],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (ui.settings.translationBackend == TranslationBackend.GEMINI) {
+                Text(
+                    text = t["Translates with Google AI Studio (Gemini). Your text is sent to Google. Needs an API key below; without one, ML Kit is used."],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1801,3 +1833,41 @@ private fun DeviceCompatibilityCard(
 }
 
 
+
+
+// ── Google AI Studio (Gemini) ──
+
+@Composable
+private fun GeminiCard(apiKey: String, model: String, onSave: (String, String) -> Unit) {
+    val t = LocalUiStrings.current
+    var keyDraft by remember(apiKey) { mutableStateOf(apiKey) }
+    var modelDraft by remember(model) { mutableStateOf(model) }
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(t["Google AI Studio (Gemini)"])
+            OutlinedTextField(
+                value = keyDraft,
+                onValueChange = { keyDraft = it },
+                label = { Text(t["API key"]) },
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = modelDraft,
+                onValueChange = { modelDraft = it },
+                label = { Text(t["Model"]) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = t["Create a free key at aistudio.google.com. It is stored only on this phone. Gemini engines send your text or speech to Google."],
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FilledTonalButton(onClick = { onSave(keyDraft, modelDraft) }, shape = RoundedCornerShape(8.dp)) {
+                Text(t["Save"])
+            }
+        }
+    }
+}

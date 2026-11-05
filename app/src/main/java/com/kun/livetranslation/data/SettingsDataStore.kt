@@ -38,6 +38,8 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
             p[STT_BACKEND] = next.sttBackend.name
             p[TRANSLATION_BACKEND] = next.translationBackend.name
             p[STT_URL] = next.sttBaseUrl.trim()
+            p[GEMINI_KEY] = next.geminiApiKey.trim()
+            p[GEMINI_MODEL] = next.geminiModel.trim().ifBlank { CaptionSettings.DEFAULT_GEMINI_MODEL }
             p[OVERLAY_W] = next.overlayWidthDp
             p[OVERLAY_H] = next.overlayHeightDp
             p[OVERLAY_THEME] = next.overlayThemeId
@@ -71,6 +73,8 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
             sttBackend = SttBackend.fromName(this[STT_BACKEND] ?: SttBackend.LOCAL_VOSK.name),
             translationBackend = TranslationBackend.fromName(this[TRANSLATION_BACKEND]),
             sttBaseUrl = this[STT_URL] ?: CaptionSettings.DEFAULT_STT_URL,
+            geminiApiKey = this[GEMINI_KEY] ?: "",
+            geminiModel = this[GEMINI_MODEL] ?: CaptionSettings.DEFAULT_GEMINI_MODEL,
             overlayWidthDp = this[OVERLAY_W] ?: CaptionSettings.DEFAULT_OVERLAY_WIDTH_DP,
             overlayHeightDp = this[OVERLAY_H] ?: CaptionSettings.DEFAULT_OVERLAY_HEIGHT_DP,
             overlayThemeId = this[OVERLAY_THEME] ?: defaults.overlayThemeId,
@@ -98,6 +102,8 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
         val STT_BACKEND = stringPreferencesKey("stt_backend")
         val TRANSLATION_BACKEND = stringPreferencesKey("translation_backend")
         val STT_URL = stringPreferencesKey("stt_url")
+        val GEMINI_KEY = stringPreferencesKey("gemini_api_key")
+        val GEMINI_MODEL = stringPreferencesKey("gemini_model")
         val OVERLAY_W = intPreferencesKey("overlay_w")
         val OVERLAY_H = intPreferencesKey("overlay_h")
         val OVERLAY_THEME = stringPreferencesKey("overlay_theme")

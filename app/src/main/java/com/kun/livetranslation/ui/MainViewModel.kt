@@ -235,6 +235,12 @@ class MainViewModel(
         viewModelScope.launch { container.settingsRepository.update { it.copy(sttBackend = backend) } }
     }
 
+    fun updateGemini(apiKey: String, model: String) {
+        viewModelScope.launch {
+            container.settingsRepository.update { it.copy(geminiApiKey = apiKey.trim(), geminiModel = model.trim()) }
+        }
+    }
+
     fun updateTranslationBackend(backend: TranslationBackend) {
         val specs = mutableState.value.deviceSpecs
         if (specs?.tier == CompatibilityTier.UNSUPPORTED && backend == TranslationBackend.ML_KIT) {

@@ -13,6 +13,8 @@ import com.kun.livetranslation.speech.LocalVoskSttClient
 import com.kun.livetranslation.speech.VoskModelRegistry
 import com.kun.livetranslation.translation.LanguageCatalogStore
 import com.kun.livetranslation.translation.LibreTranslateRepository
+import com.kun.livetranslation.ai.GeminiApi
+import com.kun.livetranslation.translation.GeminiTranslationRepository
 import com.kun.livetranslation.translation.MlKitTranslationRepository
 import com.kun.livetranslation.translation.SystemTranslationRepository
 import com.kun.livetranslation.translation.MockTranslationRepository
@@ -36,11 +38,15 @@ class AppContainer(context: Context) {
     // Falls back to ML Kit for anything the system service cannot translate.
     private val systemTranslationRepository: TranslationRepository =
         SystemTranslationRepository(context.applicationContext, fallback = mlKitTranslationRepository)
+    val geminiApi: GeminiApi = GeminiApi(settingsRepository)
+    private val geminiTranslationRepository: TranslationRepository =
+        GeminiTranslationRepository(geminiApi, fallback = mlKitTranslationRepository)
     val translationRepository: TranslationRepository = RoutingTranslationRepository(
         settingsRepository = settingsRepository,
         mlKit = mlKitTranslationRepository,
         libre = libreTranslationRepository,
-        system = systemTranslationRepository
+        system = systemTranslationRepository,
+        gemini = geminiTranslationRepository
     )
     val mockTranslationRepository: TranslationRepository = MockTranslationRepository()
     val transcriptHistory: TranscriptHistoryStore = TranscriptHistoryStore(context.applicationContext)

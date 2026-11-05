@@ -15,7 +15,8 @@ class RoutingTranslationRepository(
     private val settingsRepository: SettingsRepository,
     private val mlKit: TranslationRepository,
     private val libre: TranslationRepository,
-    private val system: TranslationRepository
+    private val system: TranslationRepository,
+    private val gemini: TranslationRepository
 ) : TranslationRepository {
 
     private var cachedBackend: TranslationBackend? = null
@@ -41,6 +42,7 @@ class RoutingTranslationRepository(
             TranslationBackend.ML_KIT -> mlKit
             TranslationBackend.LIBRE_TRANSLATE -> libre
             // Stale setting (e.g. restored on another phone): only Samsung offers this backend.
+            TranslationBackend.GEMINI -> gemini
             TranslationBackend.SYSTEM -> if (SystemTranslationRepository.isOfferedOnThisDevice()) system else mlKit
         }
         cachedBackend = backend
@@ -52,5 +54,6 @@ class RoutingTranslationRepository(
         mlKit.close()
         libre.close()
         system.close()
+        gemini.close()
     }
 }

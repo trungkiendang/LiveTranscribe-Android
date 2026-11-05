@@ -201,6 +201,13 @@ object UiStringCatalog {
         "Restore purchase",
         "Refresh status",
 
+        "Gemini",
+        "Sends your speech to Google AI Studio (Gemini) one phrase at a time. Needs an API key in Advanced settings.",
+        "Translates with Google AI Studio (Gemini). Your text is sent to Google. Needs an API key below; without one, ML Kit is used.",
+        "Google AI Studio (Gemini)",
+        "API key",
+        "Model",
+        "Create a free key at aistudio.google.com. It is stored only on this phone. Gemini engines send your text or speech to Google.",
         "Advanced settings",
         "Add quick toggle to status bar",
         "Samsung translator",
