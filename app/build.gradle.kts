@@ -82,28 +82,10 @@ android {
             dimension = "distribution"
             isDefault = true
             buildConfigField("boolean", "GITHUB_SELF_UPDATE_ENABLED", "true")
-            // Cloudflare Worker (Stripe billing backend) config. Not committed —
-            // sourced from local.properties, same pattern as translate.url/stt.url.
-            buildConfigField("String", "PREMIUM_WORKER_BASE_URL",
-                "\"${localProps.getProperty("premium.worker.url", "")}\"")
-            buildConfigField("String", "STRIPE_PRICE_AD_FREE",
-                "\"${localProps.getProperty("premium.stripe.price.ad_free", "")}\"")
-            buildConfigField("String", "STRIPE_PRICE_PRO",
-                "\"${localProps.getProperty("premium.stripe.price.pro", "")}\"")
-            // Owner-only free-access key. Blank in public/CI builds; only ever set
-            // in the developer's own local.properties. Must match the Worker's
-            // OWNER_ACCESS_KEY secret for the OWNER_ALLOWLIST bypass to apply —
-            // knowing the owner's email alone is not enough (see worker.js).
-            buildConfigField("String", "OWNER_ACCESS_KEY",
-                "\"${localProps.getProperty("premium.owner.access_key", "")}\"")
         }
         create("playstore") {
             dimension = "distribution"
             buildConfigField("boolean", "GITHUB_SELF_UPDATE_ENABLED", "false")
-            // Play Billing subscription product IDs, configured once in Play Console.
-            // Not secrets, so hardcoded here rather than sourced from local.properties.
-            buildConfigField("String", "PLAY_PRODUCT_AD_FREE", "\"ad_free_monthly\"")
-            buildConfigField("String", "PLAY_PRODUCT_PRO", "\"pro_monthly\"")
         }
     }
 
@@ -197,17 +179,6 @@ dependencies {
     // installed (e.g. sideloaded github-flavor builds).
     implementation("com.google.android.play:review-ktx:2.0.2")
 
-    // Play Billing — playstore flavor only. Gradle auto-creates the
-    // "playstoreImplementation" configuration from the flavor name; this is
-    // what guarantees zero Play Billing code ships in the github flavor APK.
-    // Pinned to 9.1.0 to satisfy Google Play's Aug 31, 2026 requirement that
-    // all apps use Billing Library 8.0.0+ (9 recommended for latest features).
-    "playstoreImplementation"("com.android.billingclient:billing-ktx:9.1.0")
-
-    // Chrome Custom Tabs — github flavor only, used to open Stripe Checkout /
-    // Customer Portal URLs in-browser. No Stripe SDK, keys, or card UI is ever
-    // compiled into this app; Stripe code lives entirely in the Cloudflare Worker.
-    "githubImplementation"("androidx.browser:browser:1.8.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")

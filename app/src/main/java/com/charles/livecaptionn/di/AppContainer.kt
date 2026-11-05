@@ -1,8 +1,6 @@
 package com.charles.livecaptionn.di
 
 import android.content.Context
-import com.charles.livecaptionn.billing.PremiumRepository
-import com.charles.livecaptionn.data.PremiumLocalStore
 import com.charles.livecaptionn.data.SettingsDataStore
 import com.charles.livecaptionn.data.SettingsRepository
 import com.charles.livecaptionn.data.TranscriptHistoryStore
@@ -49,9 +47,6 @@ class AppContainer(context: Context) {
     val languageCatalogStore: LanguageCatalogStore = LanguageCatalogStore(settingsRepository, appScope)
     val updateChecker: UpdateChecker = UpdateChecker()
     val bugReportRepo: BugReportRepo = BugReportRepo(context.applicationContext)
-    val premiumStore: PremiumLocalStore = PremiumLocalStore(context.applicationContext)
-    val premiumRepository: PremiumRepository =
-        createPremiumRepository(context.applicationContext, premiumStore, appScope)
     // Interface language. Prefers on-device ML Kit; falls back to the
     // configured LibreTranslate server when the model download is gated.
     val uiLocalization: UiLocalizationRepository = UiLocalizationRepository(

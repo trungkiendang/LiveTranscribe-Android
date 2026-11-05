@@ -188,12 +188,11 @@ class CaptionForegroundService : Service() {
             val sttLanguageCode = settings.sourceLanguageCode.ifBlank { "en" }
             val localeForSpeechRec = LocaleMap.bcp47(sttLanguageCode)
 
-            val premium = app.container.premiumRepository.state.first()
             if (com.charles.livecaptionn.translation.ProStartGate.requiresPro(
                     backend = settings.translationBackend,
                     sourceLanguageCode = settings.sourceLanguageCode,
                     targetLanguageCode = settings.targetLanguageCode,
-                    hasPro = premium.hasPro
+                    hasPro = true
                 )
             ) {
                 failAndStop("This ML Kit language requires Pro. Choose a free language or upgrade.")
@@ -203,10 +202,6 @@ class CaptionForegroundService : Service() {
                 val model = app.container.voskRegistry.installedModelFor(sttLanguageCode)
                 if (model == null) {
                     failAndStop("No on-device model installed for '$sttLanguageCode'. Download one first.")
-                    return@launch
-                }
-                if (model.quality == com.charles.livecaptionn.speech.ModelQuality.LARGE && !premium.hasPro) {
-                    failAndStop("The large Vosk model requires Pro. Install or select a small model.")
                     return@launch
                 }
             }
@@ -363,9 +358,8 @@ class CaptionForegroundService : Service() {
             combine(
                 app.container.runtimeStore.state,
                 app.container.settingsRepository.settingsFlow,
-                app.container.premiumRepository.state,
                 overlayReady
-            ) { runtime, settings, premium, _ -> Triple(runtime, settings, premium.hasPro) }
+            ) { runtime, settings, _ -> Triple(runtime, settings, true) }
                 .collectLatest { (runtime, settings, hasPro) ->
                     val overlay = overlayController ?: return@collectLatest
                     val ui = buildOverlayUi(runtime, settings, hasPro)
@@ -465,7 +459,7 @@ class CaptionForegroundService : Service() {
                 show(settings.overlayX, settings.overlayY, settings.overlayWidthDp, settings.overlayHeightDp)
             }
             val runtime = app.container.runtimeStore.state.value
-            val hasPro = app.container.premiumRepository.state.first().hasPro
+            val hasPro = true
             overlayController?.update(buildOverlayUi(runtime, settings, hasPro))
             overlayReady.value = overlayReady.value + 1
         }

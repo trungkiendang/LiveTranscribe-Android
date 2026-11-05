@@ -91,7 +91,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.charles.livecaptionn.billing.PremiumProduct
 import com.charles.livecaptionn.settings.AudioSource
 import com.charles.livecaptionn.settings.Language
 import com.charles.livecaptionn.settings.SttBackend
@@ -110,9 +109,6 @@ import com.charles.livecaptionn.overlay.OverlayThemeCatalog
 import com.charles.livecaptionn.ui.l10n.LocalUiStrings
 import com.charles.livecaptionn.ui.l10n.UiLanguagePickerDialog
 import com.charles.livecaptionn.ui.l10n.UiLocalizationRepository.UiLocalizationStage
-import com.charles.livecaptionn.ui.premium.PremiumCard
-import com.charles.livecaptionn.ui.premium.PremiumUiState
-import com.charles.livecaptionn.ui.premium.PremiumViewModel
 import com.charles.livecaptionn.update.UpdateInfo
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -125,8 +121,6 @@ fun MainScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onHistory: () -> Unit = {},
-    pendingCheckoutSessionId: String? = null,
-    onCheckoutSessionConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val ui by viewModel.state.collectAsStateWithLifecycle()
@@ -134,7 +128,6 @@ fun MainScreen(
     var translateUrlDraft by remember(ui.settings.serverBaseUrl) { mutableStateOf(ui.settings.serverBaseUrl) }
     var sttUrlDraft by remember(ui.settings.sttBaseUrl) { mutableStateOf(ui.settings.sttBaseUrl) }
     var showVoskSheet by remember { mutableStateOf(false) }
-    var showUpgradePrompt by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.refreshPermissionState() }
 
     val feedbackCtx = LocalContext.current
@@ -144,18 +137,6 @@ fun MainScreen(
     )
     val feedbackState by feedbackVm.state.collectAsStateWithLifecycle()
 
-    val premiumVm: PremiumViewModel = viewModel(
-        factory = PremiumViewModel.Factory(feedbackApp.container.premiumRepository)
-    )
-    val premiumState by premiumVm.state.collectAsStateWithLifecycle()
-    val activity = feedbackCtx as? android.app.Activity
-
-    LaunchedEffect(pendingCheckoutSessionId) {
-        if (pendingCheckoutSessionId != null) {
-            premiumVm.refresh(pendingCheckoutSessionId)
-            onCheckoutSessionConsumed()
-        }
-    }
 
     // Re-check permission state on every resume so granting overlay/mic
     // access in system Settings is reflected immediately when the user
@@ -259,11 +240,11 @@ fun MainScreen(
                 backend = ui.settings.translationBackend,
                 sourceLanguageCode = ui.settings.sourceLanguageCode,
                 targetLanguageCode = ui.settings.targetLanguageCode,
-                hasPro = premiumState.premium.hasPro
+                hasPro = true
             )
             CaptionControlCard(
                 ui,
-                onStart = { if (startNeedsPro) showUpgradePrompt = true else onStart() },
+                onStart = onStart,
                 onStop = onStop,
                 canStart = modelReady && permissionReady,
                 modelMissing = !modelReady,
@@ -281,18 +262,18 @@ fun MainScreen(
                 ui = ui,
                 viewModel = viewModel,
                 onManageModels = { showVoskSheet = true },
-                hasPro = premiumState.premium.hasPro,
-                onRequiresPro = { showUpgradePrompt = true }
+                hasPro = true,
+                onRequiresPro = {}
             )
             OverlaySettingsCard(
                 ui = ui,
                 viewModel = viewModel,
-                hasPro = premiumState.premium.hasPro,
-                onRequiresPro = { showUpgradePrompt = true }
+                hasPro = true,
+                onRequiresPro = {}
             )
             FeatureToolsCard(
                 settings = ui.settings,
-                hasPro = premiumState.premium.hasPro,
+                hasPro = true,
                 profiles = feedbackApp.container.captionProfiles,
                 glossary = feedbackApp.container.glossary,
                 micPermissionGranted = ui.micPermissionGranted,
@@ -300,7 +281,7 @@ fun MainScreen(
                 voskModels = ui.voskModels,
                 onApplyProfile = viewModel::applyProfile,
                 onSaveHistoryChange = viewModel::updateSaveHistory,
-                onRequiresPro = { showUpgradePrompt = true }
+                onRequiresPro = {}
             )
             UiLanguageCard(
                 languageCode = ui.uiLanguageCode,
@@ -310,14 +291,6 @@ fun MainScreen(
                 translatedCount = ui.uiLocalizationTranslated,
                 translatedTotal = ui.uiLocalizationTotal,
                 onSelect = viewModel::updateUiLanguage
-            )
-            PremiumCard(
-                state = premiumState,
-                onPurchase = { product -> activity?.let { premiumVm.purchase(it, product) } },
-                onManageSubscription = { activity?.let { premiumVm.manageSubscription(it) } },
-                onRestoreEmailChange = { premiumVm.updateRestoreEmail(it) },
-                onRestore = { premiumVm.restore() },
-                onRefresh = { premiumVm.refresh() }
             )
             ServerCard(
                 ui = ui,
@@ -357,16 +330,11 @@ fun MainScreen(
                 models = ui.voskModels,
                 progress = ui.voskDownloadProgress,
                 errors = ui.voskDownloadErrors,
-                hasPro = premiumState.premium.hasPro,
+                hasPro = true,
                 onDismiss = { showVoskSheet = false },
                 onDownload = viewModel::downloadVoskModel,
                 onDelete = viewModel::deleteVoskModel,
-                onRequiresPro = {
-                    // Used to just close the sheet, which left the user with no
-                    // way to reach the purchase (Play review, Oct 2026).
-                    showVoskSheet = false
-                    showUpgradePrompt = true
-                }
+                onRequiresPro = {}
             )
         }
 
@@ -379,22 +347,6 @@ fun MainScreen(
                     viewModel.openTutorial()
                 }
             )
-        }
-
-        if (showUpgradePrompt) {
-            ProUpgradeDialog(
-                state = premiumState,
-                onGoPro = {
-                    val act = activity
-                    if (act != null) premiumVm.purchase(act, PremiumProduct.PRO_MONTHLY)
-                },
-                onDismiss = { showUpgradePrompt = false }
-            )
-            // Close the prompt once Pro is active so it does not linger after
-            // Google Play's purchase sheet returns.
-            LaunchedEffect(premiumState.premium.hasPro) {
-                if (premiumState.premium.hasPro) showUpgradePrompt = false
-            }
         }
 
         if (feedbackState.showReportDialog) {
@@ -1063,44 +1015,6 @@ internal fun LanguagePickerDialog(
 }
 
 // ── Vosk model management ──
-
-/**
- * Shown from every Pro lock in the app (locked languages, large models, overlay
- * themes/fonts, profiles, glossary). "View upgrade options" used to only dismiss
- * this dialog, so a user who tapped a locked language had no path to the purchase
- * at all (Play review, Oct 2026). The confirm button now opens Google Play's
- * purchase sheet directly and any billing problem is shown right here.
- */
-@Composable
-internal fun ProUpgradeDialog(
-    state: PremiumUiState,
-    onGoPro: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val t = LocalUiStrings.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(t["Pro feature"]) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(t["Upgrade to Pro to unlock this feature. The upgrade removes ads and adds high-accuracy models, more languages, profiles, and advanced caption tools."])
-                state.error?.let { error ->
-                    Text(
-                        text = error,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = !state.isBusy, onClick = onGoPro) {
-                Text(if (state.isBusy) t["Opening Google Play…"] else t["Go Pro"])
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(t["Not now"]) } }
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
