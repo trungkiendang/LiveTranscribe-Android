@@ -302,7 +302,8 @@ class CaptionForegroundService : Service() {
                             context = this@CaptionForegroundService,
                             projection = mediaProjection!!,
                             sttUrl = settings.sttBaseUrl,
-                            languageCode = sttLanguageCode,
+                            // null => Whisper detects the spoken language itself.
+                            languageCode = if (settings.autoDetectSource) null else sttLanguageCode,
                             sourceLanguageCode = sttLanguageCode,
                             sttBackend = settings.sttBackend,
                             localSttClient = app.container.localVoskClient,
@@ -408,7 +409,7 @@ class CaptionForegroundService : Service() {
                 text = request.text,
                 sourceCode = captionSettings.sourceLanguageCode,
                 targetCode = captionSettings.targetLanguageCode,
-                autoDetect = currentAudioSource == AudioSource.SYSTEM || captionSettings.autoDetectSource
+                autoDetect = captionSettings.autoDetectSource
             )
         if (translated.isBlank()) return
         lastTranslation = key to translated

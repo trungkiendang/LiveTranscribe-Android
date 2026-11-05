@@ -2,6 +2,8 @@ package com.charles.livecaptionn.translation
 
 import android.util.Log
 import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.nl.languageid.LanguageIdentification
+import com.google.mlkit.nl.languageid.LanguageIdentificationOptions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
@@ -51,7 +53,8 @@ class MlKitTranslationRepository : TranslationRepository {
         if (clean.isEmpty()) return clean
         if (targetCode.isBlank()) return clean
 
-        val src = TranslateLanguage.fromLanguageTag(sourceCode.lowercase())
+        val effectiveSource = if (autoDetect) detectLanguage(clean) ?: sourceCode else sourceCode
+        val src = TranslateLanguage.fromLanguageTag(effectiveSource.lowercase())
         val dst = TranslateLanguage.fromLanguageTag(targetCode.lowercase())
         if (src == null || dst == null) {
             Log.w(TAG, "ML Kit does not support pair $sourceCode → $targetCode; passing text through.")
@@ -69,6 +72,28 @@ class MlKitTranslationRepository : TranslationRepository {
             Log.w(TAG, "ML Kit translation failed for $sourceCode→$targetCode", t)
             ""
         }
+    }
+
+    private val identifier by lazy {
+        LanguageIdentification.getClient(
+            LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.6f).build()
+        )
+    }
+
+    // Last confident detection. Short partials ("hi", "ok") are unreliable, so they reuse it
+    // instead of flipping the source language word by word.
+    @Volatile private var lastDetected: String? = null
+
+    /** Language of [text] if ML Kit is confident and can translate it, else the previous detection. */
+    private suspend fun detectLanguage(text: String): String? {
+        if (text.length < MIN_DETECT_CHARS) return lastDetected
+        val tag = suspendCancellableCoroutine<String?> { cont ->
+            identifier.identifyLanguage(text)
+                .addOnSuccessListener { if (cont.isActive) cont.resume(it.takeIf { t -> t != "und" }) }
+                .addOnFailureListener { if (cont.isActive) cont.resume(null) }
+        }
+        if (tag != null && TranslateLanguage.fromLanguageTag(tag) != null) lastDetected = tag
+        return lastDetected
     }
 
     override suspend fun prewarm(sourceCode: String, targetCode: String) {
@@ -151,5 +176,6 @@ class MlKitTranslationRepository : TranslationRepository {
 
     companion object {
         private const val TAG = "MlKitTranslator"
+        private const val MIN_DETECT_CHARS = 12
     }
 }

@@ -65,8 +65,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleStartRequest(intent)
+    }
+
+    /** Quick Settings tile asks us to start captions; runs the normal permission flow. */
+    private fun handleStartRequest(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_START_CAPTIONING, false) != true) return
+        intent.removeExtra(EXTRA_START_CAPTIONING) // not again on rotation
+        startCaptioning()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleStartRequest(intent)
         val app = application as LiveCaptionApp
         setContent {
             val vm: MainViewModel = viewModel(factory = MainViewModelFactory(app.container, application))
@@ -176,5 +190,9 @@ class MainActivity : ComponentActivity() {
             action = CaptionForegroundService.ACTION_STOP
         }
         startService(intent)
+    }
+
+    companion object {
+        const val EXTRA_START_CAPTIONING = "livecaptionn.extra.START_CAPTIONING"
     }
 }

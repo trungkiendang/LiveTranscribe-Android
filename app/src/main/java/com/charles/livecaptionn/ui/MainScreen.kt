@@ -805,6 +805,16 @@ private fun LanguageCard(
                     onCheckedChange = viewModel::updateAutoDetect
                 )
             }
+            if (ui.settings.autoDetectSource) {
+                Text(
+                    text = if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK)
+                        t["Auto-detect fixes the translation step only. On-device Vosk still listens in the Source language above; pick Remote Whisper to detect the spoken language itself."]
+                    else
+                        t["Remote Whisper detects the spoken language; the translation follows it. Choose the target language above."],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

@@ -202,6 +202,8 @@ object UiStringCatalog {
         "Refresh status",
 
         "Advanced settings",
+        "Auto-detect fixes the translation step only. On-device Vosk still listens in the Source language above; pick Remote Whisper to detect the spoken language itself.",
+        "Remote Whisper detects the spoken language; the translation follows it. Choose the target language above.",
         "Hide advanced settings",
         // Feedback / support
         "Support & Feedback",
