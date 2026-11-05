@@ -19,10 +19,11 @@ class CloudSttSession(
     private val api: AiApi,
     private val languageHint: String?,
     private val scope: CoroutineScope,
+    private val speechDetector: SileroSpeechDetector? = null,
     private val onText: (String) -> Unit
 ) : SttSession {
 
-    private val segmenter = UtteranceSegmenter()
+    private val segmenter = UtteranceSegmenter(speechDetector?.let { d -> { chunk: ByteArray -> d.isSpeech(chunk) } })
     private val pending = Channel<Deferred<String?>>(Channel.UNLIMITED)
 
     init {
@@ -49,6 +50,7 @@ class CloudSttSession(
     }
 
     override fun close() {
+        speechDetector?.close()
         pending.close() // clips already sent still finish and are delivered
     }
 }

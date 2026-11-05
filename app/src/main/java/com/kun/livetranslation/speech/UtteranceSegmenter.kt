@@ -15,7 +15,10 @@ import kotlin.math.abs
  *
  * Feed chunks of about 100 ms. Not thread-safe.
  */
-class UtteranceSegmenter {
+class UtteranceSegmenter(
+    /** Decides whether a chunk holds speech; null = loudness against the adaptive noise floor. */
+    private val isSpeech: ((ByteArray) -> Boolean)? = null
+) {
     private val recentEnergy = ArrayDeque<Int>()
     private val preRoll = ArrayDeque<ByteArray>()
     private val chunks = ArrayList<ByteArray>()
@@ -37,9 +40,11 @@ class UtteranceSegmenter {
         val noise = recentEnergy.minOrNull() ?: e
         val startThreshold = maxOf(MIN_START_THRESHOLD, noise * 3)
         val endThreshold = maxOf(MIN_END_THRESHOLD, noise * 2)
+        // One call per chunk: the detector is stateful.
+        val voiced = isSpeech?.invoke(chunk)
 
         if (!speaking) {
-            if (e >= startThreshold) {
+            if (voiced ?: (e >= startThreshold)) {
                 speaking = true
                 chunks.addAll(preRoll)
                 energies.addAll(preRoll.map { 0 })
@@ -55,7 +60,7 @@ class UtteranceSegmenter {
         }
 
         add(chunk, e)
-        if (e >= endThreshold) {
+        if (voiced ?: (e >= endThreshold)) {
             loudChunks++
             quietChunks = 0
         } else {
