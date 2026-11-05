@@ -41,9 +41,9 @@ class StreamingSttEngine(
     private val mediaProjection: MediaProjection?,
     private val languageCode: String,
     private val localSttClient: LocalVoskSttClient,
-    /** When set, speech goes to Gemini instead of Vosk ([geminiLanguageHint] null = detect). */
-    private val geminiApi: com.kun.livetranslation.ai.GeminiApi? = null,
-    private val geminiLanguageHint: String? = null,
+    /** When set, speech goes to Gemini instead of Vosk ([languageHint] null = detect). */
+    private val aiApi: com.kun.livetranslation.ai.AiApi? = null,
+    private val languageHint: String? = null,
     private val scope: CoroutineScope,
     private val onResult: (SpeechResult) -> Unit,
     private val onError: (String?) -> Unit = {}
@@ -104,8 +104,8 @@ class StreamingSttEngine(
     }
 
     private suspend fun startInternal() {
-        val localSession: SttSession? = if (geminiApi != null) {
-            GeminiSttSession(geminiApi, geminiLanguageHint, scope) { text -> onResult(SpeechResult(text, isFinal = true)) }
+        val localSession: SttSession? = if (aiApi != null) {
+            CloudSttSession(aiApi, languageHint, scope) { text -> onResult(SpeechResult(text, isFinal = true)) }
         } else {
             localSttClient.openSession(languageCode, SAMPLE_RATE)
         }

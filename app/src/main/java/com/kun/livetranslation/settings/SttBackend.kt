@@ -3,7 +3,7 @@ package com.kun.livetranslation.settings
 enum class SttBackend(val label: String) {
     LOCAL_VOSK("On-device (streaming)"),
     REMOTE_WHISPER("Remote Whisper"),
-    GEMINI("Google Gemini");
+    AI("Cloud AI");
 
     companion object {
         fun fromName(name: String): SttBackend =

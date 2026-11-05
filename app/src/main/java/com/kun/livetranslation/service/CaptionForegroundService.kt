@@ -189,8 +189,12 @@ class CaptionForegroundService : Service() {
             val sttLanguageCode = settings.sourceLanguageCode.ifBlank { "en" }
             val localeForSpeechRec = LocaleMap.bcp47(sttLanguageCode)
 
-            if (settings.sttBackend == SttBackend.GEMINI && settings.geminiApiKey.isBlank()) {
-                failAndStop("Add your Google AI Studio API key in Advanced settings to use Gemini.")
+            if (settings.sttBackend == SttBackend.AI && settings.aiApiKey.isBlank()) {
+                failAndStop("Add your AI provider API key in Advanced settings to use Cloud AI.")
+                return@launch
+            }
+            if (settings.sttBackend == SttBackend.AI && !settings.aiConfig.canTranscribe) {
+                failAndStop("The selected AI provider cannot transcribe speech. Choose Gemini or an OpenAI-compatible service with a speech model.")
                 return@launch
             }
             if (settings.sttBackend == SttBackend.LOCAL_VOSK) {
@@ -218,9 +222,9 @@ class CaptionForegroundService : Service() {
                 }
             }
 
-            // Each Gemini call is a paid/rate-limited cloud request: translate partials less often.
+            // Each cloud AI call is a paid/rate-limited request: translate partials less often.
             val translateCadenceMs =
-                if (settings.translationBackend == TranslationBackend.GEMINI) GEMINI_TRANSLATE_MS else TRANSLATE_DEBOUNCE_MS
+                if (settings.translationBackend == TranslationBackend.AI) GEMINI_TRANSLATE_MS else TRANSLATE_DEBOUNCE_MS
             launch(Dispatchers.IO) {
                 translateRequests
                     .sample(translateCadenceMs)
@@ -287,7 +291,7 @@ class CaptionForegroundService : Service() {
             //       system  → legacy batch SystemAudioEngine (posts WAVs to remote Whisper)
             //       mic     → AndroidSpeechRecognizerManager (Google recognizer; kept as fallback)
             val backend = settings.sttBackend
-            val useStreaming = backend == SttBackend.LOCAL_VOSK || backend == SttBackend.GEMINI
+            val useStreaming = backend == SttBackend.LOCAL_VOSK || backend == SttBackend.AI
 
             if (useStreaming) {
                 val engine = StreamingSttEngine(
@@ -296,8 +300,8 @@ class CaptionForegroundService : Service() {
                     mediaProjection = mediaProjection,
                     languageCode = sttLanguageCode,
                     localSttClient = app.container.localVoskClient,
-                    geminiApi = if (backend == SttBackend.GEMINI) app.container.geminiApi else null,
-                    geminiLanguageHint = if (settings.autoDetectSource) null else sttLanguageCode,
+                    aiApi = if (backend == SttBackend.AI) app.container.aiApi else null,
+                    languageHint = if (settings.autoDetectSource) null else sttLanguageCode,
                     scope = serviceScope,
                     onResult = onSpeechResult,
                     onError = errorSink

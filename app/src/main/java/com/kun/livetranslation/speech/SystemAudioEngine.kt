@@ -147,7 +147,7 @@ class SystemAudioEngine(
             val chunkSeconds = when (sttBackend) {
                 SttBackend.LOCAL_VOSK -> LOCAL_CHUNK_SECONDS
                 // GEMINI never reaches this legacy engine (the service streams it); handled for exhaustiveness.
-                SttBackend.REMOTE_WHISPER, SttBackend.GEMINI -> REMOTE_CHUNK_SECONDS
+                SttBackend.REMOTE_WHISPER, SttBackend.AI -> REMOTE_CHUNK_SECONDS
             }
             val chunkBytes = SAMPLE_RATE * 2 * chunkSeconds // 16-bit mono = 2 bytes/sample
             val readBuffer = ByteArray(4096)
@@ -201,7 +201,7 @@ class SystemAudioEngine(
                 consecutiveSilentChunks = 0
                 statusMutable.value = RecognitionStatus.PROCESSING
                 val outcome = when (sttBackend) {
-                    SttBackend.REMOTE_WHISPER, SttBackend.GEMINI -> {
+                    SttBackend.REMOTE_WHISPER, SttBackend.AI -> {
                         val wavData = WavEncoder.encode(pcmData, SAMPLE_RATE)
                         sttClient.transcribe(wavData, sttUrl, languageCode)
                     }

@@ -1,6 +1,6 @@
 package com.kun.livetranslation.speech
 
-import com.kun.livetranslation.ai.GeminiApi
+import com.kun.livetranslation.ai.AiApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -9,13 +9,13 @@ import java.io.ByteArrayOutputStream
 import kotlin.math.abs
 
 /**
- * Cloud speech recognition with Gemini. Not streaming: speech is cut into utterances
+ * Cloud speech recognition through the configured AI provider. Not streaming: speech is cut into utterances
  * (a pause of ~0.7 s, or 8 s at most) and each utterance is sent as one WAV clip, so
  * captions appear one phrase at a time, a second or two after it is spoken.
  * Results arrive through [onText] in order, from a background thread.
  */
-class GeminiSttSession(
-    private val api: GeminiApi,
+class CloudSttSession(
+    private val api: AiApi,
     private val languageHint: String?,
     scope: CoroutineScope,
     private val onText: (String) -> Unit

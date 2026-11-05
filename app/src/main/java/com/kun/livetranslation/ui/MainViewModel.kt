@@ -235,9 +235,14 @@ class MainViewModel(
         viewModelScope.launch { container.settingsRepository.update { it.copy(sttBackend = backend) } }
     }
 
-    fun updateGemini(apiKey: String, model: String) {
+    fun updateAiConfig(config: com.kun.livetranslation.ai.AiConfig) {
         viewModelScope.launch {
-            container.settingsRepository.update { it.copy(geminiApiKey = apiKey.trim(), geminiModel = model.trim()) }
+            container.settingsRepository.update {
+                it.copy(
+                    aiProvider = config.provider, aiApiKey = config.apiKey.trim(), aiBaseUrl = config.baseUrl.trim(),
+                    aiModel = config.model.trim(), aiSttModel = config.sttModel.trim()
+                )
+            }
         }
     }
 

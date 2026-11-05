@@ -65,7 +65,7 @@ data class MainUiState(
                 // (mic) can in principle handle any locale the translation
                 // engine supports.
                 com.kun.livetranslation.settings.SttBackend.REMOTE_WHISPER,
-                com.kun.livetranslation.settings.SttBackend.GEMINI ->
+                com.kun.livetranslation.settings.SttBackend.AI ->
                     translationLanguages()
             }
         }
@@ -75,7 +75,7 @@ data class MainUiState(
         get() = translationLanguages()
 
     private fun translationLanguages(): List<Language> = when (settings.translationBackend) {
-        TranslationBackend.ML_KIT, TranslationBackend.SYSTEM, TranslationBackend.GEMINI -> MlKitLanguages.LIST
+        TranslationBackend.ML_KIT, TranslationBackend.SYSTEM, TranslationBackend.AI -> MlKitLanguages.LIST
         TranslationBackend.LIBRE_TRANSLATE ->
             if (libreLanguages.isNotEmpty()) libreLanguages else Language.FALLBACK
     }

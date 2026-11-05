@@ -1,13 +1,13 @@
 package com.kun.livetranslation.translation
 
-import com.kun.livetranslation.ai.GeminiApi
+import com.kun.livetranslation.ai.AiApi
 
 /**
- * Translation through Google AI Studio (Gemini). Without an API key it uses [fallback]
+ * Translation through a cloud AI provider. Without an API key it uses [fallback]
  * (ML Kit). A failed request returns "" so the service keeps the last good caption.
  */
-class GeminiTranslationRepository(
-    private val api: GeminiApi,
+class AiTranslationRepository(
+    private val api: AiApi,
     private val fallback: TranslationRepository
 ) : TranslationRepository {
 

@@ -182,6 +182,8 @@ dependencies {
 
 
     testImplementation("junit:junit:4.13.2")
+    // Real org.json for JVM tests (the Android stubs throw "not mocked").
+    testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     // Espresso 3.7 supports the Android 17 input APIs used by the Pixel test device.

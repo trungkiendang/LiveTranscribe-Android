@@ -23,7 +23,7 @@ class RoutingTranslationRepositoryTest {
             mlKit = mlKit,
             libre = libre,
             system = FakeTranslationRepository("system"),
-            gemini = FakeTranslationRepository("gemini")
+            ai = FakeTranslationRepository("gemini")
         )
         val result = repo.translate("hello", "en", "vi", autoDetect = false)
         assertEquals("mlkit-translated", result)
@@ -40,7 +40,7 @@ class RoutingTranslationRepositoryTest {
             mlKit = mlKit,
             libre = libre,
             system = FakeTranslationRepository("system"),
-            gemini = FakeTranslationRepository("gemini")
+            ai = FakeTranslationRepository("gemini")
         )
         val result = repo.translate("hello", "en", "vi", autoDetect = false)
         assertEquals("libre-translated", result)
@@ -58,7 +58,7 @@ class RoutingTranslationRepositoryTest {
             mlKit = mlKit,
             libre = FakeTranslationRepository("libre"),
             system = system,
-            gemini = FakeTranslationRepository("gemini")
+            ai = FakeTranslationRepository("gemini")
         )
         assertEquals("mlkit-translated", repo.translate("hello", "en", "vi", autoDetect = false))
         assertEquals(0, system.translateCount)
@@ -66,23 +66,23 @@ class RoutingTranslationRepositoryTest {
 
     @Test
     fun translate_routesToGemini() = runTest {
-        val gemini = FakeTranslationRepository("gemini-translated")
+        val ai = FakeTranslationRepository("gemini-translated")
         val repo = RoutingTranslationRepository(
-            settingsRepository = FakeSettingsRepo(TranslationBackend.GEMINI),
+            settingsRepository = FakeSettingsRepo(TranslationBackend.AI),
             mlKit = FakeTranslationRepository("mlkit"),
             libre = FakeTranslationRepository("libre"),
             system = FakeTranslationRepository("system"),
-            gemini = gemini
+            ai = ai
         )
         assertEquals("gemini-translated", repo.translate("hello", "en", "vi", autoDetect = false))
-        assertEquals(1, gemini.translateCount)
+        assertEquals(1, ai.translateCount)
     }
 
     @Test
     fun geminiTranslation_withoutApiKey_usesFallback() = runTest {
         val fallback = FakeTranslationRepository("mlkit-translated")
-        val repo = com.kun.livetranslation.translation.GeminiTranslationRepository(
-            com.kun.livetranslation.ai.GeminiApi(FakeSettingsRepo(TranslationBackend.GEMINI)),
+        val repo = com.kun.livetranslation.translation.AiTranslationRepository(
+            com.kun.livetranslation.ai.AiApi(FakeSettingsRepo(TranslationBackend.AI)),
             fallback
         )
         assertEquals("mlkit-translated", repo.translate("hello", "en", "vi", autoDetect = false))
@@ -98,7 +98,7 @@ class RoutingTranslationRepositoryTest {
             mlKit = mlKit,
             libre = libre,
             system = FakeTranslationRepository("system"),
-            gemini = FakeTranslationRepository("gemini")
+            ai = FakeTranslationRepository("gemini")
         )
         repo.translate("a", "en", "vi", autoDetect = false)
         repo.translate("b", "en", "vi", autoDetect = false)
@@ -116,7 +116,7 @@ class RoutingTranslationRepositoryTest {
             mlKit = mlKit,
             libre = libre,
             system = FakeTranslationRepository("system"),
-            gemini = FakeTranslationRepository("gemini")
+            ai = FakeTranslationRepository("gemini")
         )
         repo.prewarm("en", "vi")
         assertEquals(1, mlKit.prewarmCount)

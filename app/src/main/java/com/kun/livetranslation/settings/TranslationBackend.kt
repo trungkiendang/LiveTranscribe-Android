@@ -9,13 +9,13 @@ package com.kun.livetranslation.settings
  *   Supports whatever languages the server has Argos packages for.
  * - [SYSTEM]: the phone's own translation service (Samsung devices only; falls back to
  *   ML Kit when the service or language pair is missing).
- * - [GEMINI]: Google AI Studio (Gemini) over the internet; needs the user's API key.
+ * - [AI]: a cloud AI provider (Gemini, OpenAI-compatible, Claude) using the user's own API key.
  */
 enum class TranslationBackend {
     ML_KIT,
     LIBRE_TRANSLATE,
     SYSTEM,
-    GEMINI;
+    AI;
 
     companion object {
         fun fromName(name: String?): TranslationBackend =
