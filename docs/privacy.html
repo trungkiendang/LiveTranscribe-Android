@@ -15,7 +15,7 @@
 <title>Privacy policy — LiveCaptionN</title>
 <meta name="description" content="LiveCaptionN privacy policy. No accounts, on-device speech recognition and translation, and a full breakdown of ads, analytics, and optional subscription billing.">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="https://chartmann1590.github.io/LiveTranscribe-Android/privacy.html">
+<link rel="canonical" href="https://trungkiendang.github.io/LiveTranscribe-Android/privacy.html">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <meta name="theme-color" content="#0b0717">
 
@@ -106,7 +106,7 @@
       <a href="index.html#languages">Languages</a>
       <a href="index.html#screenshots">Screenshots</a>
       <a href="index.html#faq">FAQ</a>
-      <a class="btn btn-primary btn-sm" href="https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest">Download</a>
+      <a class="btn btn-primary btn-sm" href="https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest">Download</a>
     </div>
   </div>
 </nav>
@@ -121,7 +121,7 @@
     </div>
 
     <h2>1. Who this policy is from</h2>
-    <p>LiveCaptionN is a free, open-source Android application maintained by <a href="https://github.com/chartmann1590">chartmann1590</a>. The full source code is available on <a href="https://github.com/chartmann1590/LiveTranscribe-Android">GitHub</a> and every release is built reproducibly by GitHub Actions from a public commit you can audit.</p>
+    <p>LiveCaptionN is a free, open-source Android application maintained by <a href="https://github.com/trungkiendang">trungkiendang</a>. The full source code is available on <a href="https://github.com/trungkiendang/LiveTranscribe-Android">GitHub</a> and every release is built reproducibly by GitHub Actions from a public commit you can audit.</p>
 
     <h2>2. What data LiveCaptionN processes</h2>
 
@@ -139,7 +139,7 @@
     <ul>
       <li><strong>Vosk speech model downloads.</strong> When you tap <em>Manage on-device models</em> and pick a new language, the app downloads the model zip from <a href="https://alphacephei.com/vosk/models"><code>alphacephei.com</code></a>, unzips it to app-private storage, and then never contacts that server again for that model.</li>
       <li><strong>Google ML Kit translation model downloads.</strong> The first time you use a given language pair, Google ML Kit downloads a ~30 MB translation model from Google&rsquo;s model service. After that the translation step is fully offline. The download is performed by Google Play Services on your behalf &mdash; see <a href="https://developers.google.com/ml-kit/terms">Google&rsquo;s ML Kit terms</a> and <a href="https://policies.google.com/privacy">Google&rsquo;s privacy policy</a> for details about that traffic.</li>
-      <li><strong>GitHub release check.</strong> Roughly twice a day, a background WorkManager job calls the public <code>api.github.com/repos/chartmann1590/LiveTranscribe-Android/releases/latest</code> endpoint to see whether a new version of the app has been published. The request sends no personal information beyond the standard HTTP metadata every app sends to any web server (IP address, User-Agent). You can disable update notifications by turning off the app&rsquo;s notification permission.</li>
+      <li><strong>GitHub release check.</strong> Roughly twice a day, a background WorkManager job calls the public <code>api.github.com/repos/trungkiendang/LiveTranscribe-Android/releases/latest</code> endpoint to see whether a new version of the app has been published. The request sends no personal information beyond the standard HTTP metadata every app sends to any web server (IP address, User-Agent). You can disable update notifications by turning off the app&rsquo;s notification permission.</li>
       <li><strong>Optional LibreTranslate server (only if you enable it).</strong> If you switch the translation backend to LibreTranslate in settings, the recognized text is POSTed to the LibreTranslate URL <em>you</em> configured. LiveCaptionN ships no default LibreTranslate server &mdash; you provide one. No data ever goes to a server the developer controls.</li>
       <li><strong>Optional remote Whisper server (only if you enable it).</strong> If you switch the speech backend to the remote Whisper endpoint, captured audio is POSTed to the Whisper URL <em>you</em> configured. Same deal: you provide the URL, nothing goes to the developer.</li>
     </ul>
@@ -186,7 +186,7 @@
     <p>If this policy ever changes, the updated version will be published at this URL and the &ldquo;Last updated&rdquo; date at the top will change. Because the app has no way to phone home, you will not receive an in-app notification about policy changes &mdash; check this page when a new release notes it.</p>
 
     <h2>9. Contact</h2>
-    <p>Questions, concerns, or security reports should be filed as an issue on the project&rsquo;s GitHub repository: <a href="https://github.com/chartmann1590/LiveTranscribe-Android/issues">github.com/chartmann1590/LiveTranscribe-Android/issues</a>. For sensitive security reports you can open a private security advisory via the same repository&rsquo;s <em>Security</em> tab.</p>
+    <p>Questions, concerns, or security reports should be filed as an issue on the project&rsquo;s GitHub repository: <a href="https://github.com/trungkiendang/LiveTranscribe-Android/issues">github.com/trungkiendang/LiveTranscribe-Android/issues</a>. For sensitive security reports you can open a private security advisory via the same repository&rsquo;s <em>Security</em> tab.</p>
   </div>
 </section>
 
@@ -206,11 +206,11 @@
     </div>
     <p>
       <a href="index.html">Home</a> ·
-      <a href="https://github.com/chartmann1590/LiveTranscribe-Android">GitHub</a> ·
-      <a href="https://github.com/chartmann1590/LiveTranscribe-Android/releases">Releases</a> ·
-      <a href="https://github.com/chartmann1590/LiveTranscribe-Android/issues">Report an issue</a>
+      <a href="https://github.com/trungkiendang/LiveTranscribe-Android">GitHub</a> ·
+      <a href="https://github.com/trungkiendang/LiveTranscribe-Android/releases">Releases</a> ·
+      <a href="https://github.com/trungkiendang/LiveTranscribe-Android/issues">Report an issue</a>
     </p>
-    <p>&copy; 2026 chartmann1590. Open source under the MIT license.</p>
+    <p>&copy; 2026 trungkiendang. Open source under the MIT license.</p>
   </div>
 </footer>
 

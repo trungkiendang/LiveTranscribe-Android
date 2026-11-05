@@ -71,7 +71,7 @@ android {
         buildConfigField("String", "DEFAULT_STT_URL", "\"$defaultStt\"")
 
         // GitHub repo that the in-app update checker queries for new releases.
-        buildConfigField("String", "UPDATE_REPO_OWNER", "\"chartmann1590\"")
+        buildConfigField("String", "UPDATE_REPO_OWNER", "\"trungkiendang\"")
         buildConfigField("String", "UPDATE_REPO_NAME", "\"LiveTranscribe-Android\"")
 
     }

@@ -28,7 +28,7 @@ interface Env {
   GITHUB_TOKEN: string;
 }
 
-const GITHUB_OWNER = 'chartmann1590';
+const GITHUB_OWNER = 'trungkiendang';
 const GITHUB_REPO = 'LiveTranscribe-Android';
 const GITHUB_ASSETS_DIR = 'feedback-assets';
 const GITHUB_API = 'https://api.github.com';

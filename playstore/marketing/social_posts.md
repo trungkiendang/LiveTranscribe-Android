@@ -6,8 +6,8 @@ for whichever store you're pushing that day.
 
 Links:
 - Play Store: https://play.google.com/store/apps/details?id=com.charles.livecaptionn
-- GitHub/APK: https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest
-- Website: https://chartmann1590.github.io/LiveTranscribe-Android/
+- GitHub/APK: https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest
+- Website: https://trungkiendang.github.io/LiveTranscribe-Android/
 
 ---
 
