@@ -236,7 +236,7 @@ class OverlayController(
         )
         statusText?.setTextColor(theme.textRgb)
         statusText?.typeface = font.typeface
-        statusText?.text = buildString {
+        statusText?.setTextIfChanged(buildString {
             append(s["Status"])
             append(": ")
             append(s[ui.status.displayName])
@@ -245,7 +245,7 @@ class OverlayController(
                 append("\n")
                 append(detail)
             }
-        }
+        })
         pauseButton?.contentDescription = if (ui.status == RecognitionStatus.PAUSED) s["Resume captioning"] else s["Pause captioning"]
         minButton?.contentDescription = s["Minimize overlay"]
         closeButton?.contentDescription = s["Close overlay"]
@@ -259,7 +259,7 @@ class OverlayController(
         if (display.showOriginal) {
             originalText?.setTextColor(Color.argb(190, textR, textG, textB))
             originalText?.typeface = Typeface.create(font.typeface, Typeface.ITALIC)
-            originalText?.text = display.originalText
+            originalText?.setTextIfChanged(display.originalText)
             originalText?.textSize = display.originalTextSizeSp
             dividerView?.setBackgroundColor(Color.argb(45, textR, textG, textB))
             originalContainer?.visibility = if (ui.minimized) View.GONE else View.VISIBLE
@@ -269,7 +269,8 @@ class OverlayController(
 
         translatedText?.setTextColor(theme.textRgb)
         translatedText?.typeface = font.typeface
-        translatedText?.text = display.translatedText
+        val textChanged = translatedText?.text?.toString() != display.translatedText
+        translatedText?.setTextIfChanged(display.translatedText)
         translatedText?.textSize = display.translatedTextSizeSp
         translatedText?.visibility = View.VISIBLE
         body?.visibility = if (ui.minimized) View.GONE else View.VISIBLE
@@ -278,9 +279,16 @@ class OverlayController(
             else android.R.drawable.ic_media_pause
         )
         // Auto-scroll to bottom on new text
-        body?.post {
-            try { body?.fullScroll(View.FOCUS_DOWN) } catch (_: Throwable) { }
+        if (textChanged) {
+            body?.post {
+                try { body?.fullScroll(View.FOCUS_DOWN) } catch (_: Throwable) { }
+            }
         }
+    }
+
+    // Re-setting identical text still triggers a measure/layout pass.
+    private fun TextView.setTextIfChanged(new: CharSequence) {
+        if (text.toString() != new.toString()) text = new
     }
 
     fun hide() {

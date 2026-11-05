@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -215,7 +215,7 @@ class CaptionForegroundService : Service() {
 
             launch(Dispatchers.IO) {
                 translateRequests
-                    .debounce(TRANSLATE_DEBOUNCE_MS)
+                    .sample(TRANSLATE_DEBOUNCE_MS)
                     .collect {
                         while (true) {
                             val final = pendingFinalTranslations.poll() ?: break
@@ -416,14 +416,15 @@ class CaptionForegroundService : Service() {
             )
         }
         if (request.saveHistory && captionSettings.saveHistory) {
-            app.container.transcriptHistory.add(
-                TranscriptEntry(
-                    originalText = request.text,
-                    translatedText = translatedWithGlossary,
-                    sourceLanguage = if (currentAudioSource == AudioSource.SYSTEM) "auto" else captionSettings.sourceLanguageCode,
-                    targetLanguage = captionSettings.targetLanguageCode
-                )
+            // Own coroutine: the disk write must not delay the next translation.
+            // The store's Mutex keeps writes in order.
+            val entry = TranscriptEntry(
+                originalText = request.text,
+                translatedText = translatedWithGlossary,
+                sourceLanguage = if (currentAudioSource == AudioSource.SYSTEM) "auto" else captionSettings.sourceLanguageCode,
+                targetLanguage = captionSettings.targetLanguageCode
             )
+            serviceScope.launch(Dispatchers.IO) { app.container.transcriptHistory.add(entry) }
         }
     }
 

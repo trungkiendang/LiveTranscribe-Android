@@ -38,6 +38,9 @@ class MlKitTranslationRepository : TranslationRepository {
     // lifetime of the process so downloads and model loads only happen once.
     private val translators = mutableMapOf<String, Translator>()
 
+    // Translators whose model is confirmed on disk; skips the per-call download check.
+    private val ready = java.util.concurrent.ConcurrentHashMap.newKeySet<Translator>()
+
     override suspend fun translate(
         text: String,
         sourceCode: String,
@@ -109,7 +112,13 @@ class MlKitTranslationRepository : TranslationRepository {
         return translator
     }
 
-    private suspend fun ensureModelDownloaded(translator: Translator) = withContext(Dispatchers.IO) {
+    private suspend fun ensureModelDownloaded(translator: Translator) {
+        if (translator in ready) return
+        downloadModel(translator)
+        ready.add(translator)
+    }
+
+    private suspend fun downloadModel(translator: Translator) = withContext(Dispatchers.IO) {
         suspendCancellableCoroutine<Unit> { cont ->
             // DownloadConditions defaults allow cellular — we don't force
             // Wi-Fi so the first-use download actually completes when the
@@ -132,6 +141,7 @@ class MlKitTranslationRepository : TranslationRepository {
         val toClose = synchronized(this) {
             val current = translators.values.toList()
             translators.clear()
+            ready.clear()
             current
         }
         toClose.forEach { translator ->
