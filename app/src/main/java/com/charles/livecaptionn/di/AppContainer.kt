@@ -8,7 +8,6 @@ import com.charles.livecaptionn.data.CaptionProfileRepository
 import com.charles.livecaptionn.data.FileCaptionProfileRepository
 import com.charles.livecaptionn.data.FileGlossaryRepository
 import com.charles.livecaptionn.data.GlossaryRepository
-import com.charles.livecaptionn.data.feedback.BugReportRepo
 import com.charles.livecaptionn.service.CaptionRuntimeStore
 import com.charles.livecaptionn.speech.LocalVoskSttClient
 import com.charles.livecaptionn.speech.VoskModelRegistry
@@ -46,7 +45,6 @@ class AppContainer(context: Context) {
     val localVoskClient: LocalVoskSttClient = LocalVoskSttClient(voskRegistry)
     val languageCatalogStore: LanguageCatalogStore = LanguageCatalogStore(settingsRepository, appScope)
     val updateChecker: UpdateChecker = UpdateChecker()
-    val bugReportRepo: BugReportRepo = BugReportRepo(context.applicationContext)
     // Interface language. Prefers on-device ML Kit; falls back to the
     // configured LibreTranslate server when the model download is gated.
     val uiLocalization: UiLocalizationRepository = UiLocalizationRepository(

@@ -78,6 +78,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,11 +100,6 @@ import com.charles.livecaptionn.speech.RecognitionStatus
 import com.charles.livecaptionn.speech.ModelQuality
 import com.charles.livecaptionn.speech.VoskModelInfo
 import com.charles.livecaptionn.translation.MlKitLanguages
-import com.charles.livecaptionn.ui.feedback.FeedbackViewModel
-import com.charles.livecaptionn.ui.feedback.IssueDetailsDialog
-import com.charles.livecaptionn.ui.feedback.ReportProblemDialog
-import com.charles.livecaptionn.ui.feedback.SubmitSuccessSnackbar
-import com.charles.livecaptionn.ui.feedback.SupportAndFeedbackCard
 import com.charles.livecaptionn.overlay.OverlayFontCatalog
 import com.charles.livecaptionn.overlay.OverlayThemeCatalog
 import com.charles.livecaptionn.ui.l10n.LocalUiStrings
@@ -128,14 +124,11 @@ fun MainScreen(
     var translateUrlDraft by remember(ui.settings.serverBaseUrl) { mutableStateOf(ui.settings.serverBaseUrl) }
     var sttUrlDraft by remember(ui.settings.sttBaseUrl) { mutableStateOf(ui.settings.sttBaseUrl) }
     var showVoskSheet by remember { mutableStateOf(false) }
+    var showAdvanced by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.refreshPermissionState() }
 
     val feedbackCtx = LocalContext.current
     val feedbackApp = feedbackCtx.applicationContext as com.charles.livecaptionn.LiveCaptionApp
-    val feedbackVm: FeedbackViewModel = viewModel(
-        factory = FeedbackViewModel.Factory(feedbackCtx, feedbackApp.container.bugReportRepo)
-    )
-    val feedbackState by feedbackVm.state.collectAsStateWithLifecycle()
 
 
     // Re-check permission state on every resume so granting overlay/mic
@@ -242,70 +235,63 @@ fun MainScreen(
                 onDownloadModel = viewModel::downloadVoskModel,
                 onManageModels = { showVoskSheet = true }
             )
-            PermissionsCard(ui, onRequestAudioPermission, onOpenOverlaySettings)
-            DeviceCompatibilityCard(
-                specs = ui.deviceSpecs,
-                onWatchTutorial = { viewModel.openTutorial() },
-                onSimulateTier = { viewModel.setSimulatedTier(it) }
-            )
+            // Only shown while something is missing; all-green checkmarks are noise.
+            if (!permissionReady) PermissionsCard(ui, onRequestAudioPermission, onOpenOverlaySettings)
             AudioSourceCard(ui, viewModel, onManageModels = { showVoskSheet = true })
             LanguageCard(
                 ui = ui,
                 viewModel = viewModel,
                 onManageModels = { showVoskSheet = true },
             )
-            OverlaySettingsCard(
-                ui = ui,
-                viewModel = viewModel,
-            )
-            FeatureToolsCard(
-                settings = ui.settings,
-                profiles = feedbackApp.container.captionProfiles,
-                glossary = feedbackApp.container.glossary,
-                micPermissionGranted = ui.micPermissionGranted,
-                overlayPermissionGranted = ui.overlayPermissionGranted,
-                voskModels = ui.voskModels,
-                onApplyProfile = viewModel::applyProfile,
-                onSaveHistoryChange = viewModel::updateSaveHistory,
-            )
-            UiLanguageCard(
-                languageCode = ui.uiLanguageCode,
-                busy = ui.uiLocalizationBusy,
-                error = ui.uiLocalizationError,
-                stage = ui.uiLocalizationStage,
-                translatedCount = ui.uiLocalizationTranslated,
-                translatedTotal = ui.uiLocalizationTotal,
-                onSelect = viewModel::updateUiLanguage
-            )
-            ServerCard(
-                ui = ui,
-                translateUrl = translateUrlDraft,
-                onTranslateUrlChange = { translateUrlDraft = it },
-                onSaveTranslateUrl = { viewModel.updateBaseUrl(translateUrlDraft) },
-                onRefreshLibre = { viewModel.refreshLibreCatalog() },
-                onSelectTranslationBackend = viewModel::updateTranslationBackend,
-                sttUrl = sttUrlDraft,
-                onSttUrlChange = { sttUrlDraft = it },
-                onSaveSttUrl = { viewModel.updateSttUrl(sttUrlDraft) },
-                showStt = ui.settings.audioSource == AudioSource.SYSTEM &&
-                    ui.settings.sttBackend == SttBackend.REMOTE_WHISPER
-            )
-
-            SupportAndFeedbackCard(
-                state = feedbackState,
-                onReportProblem = { feedbackVm.showReportDialog() },
-                onOpenReport = { feedbackVm.openIssueDetails(it) }
-            )
-
-            MoreAppsSection()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (feedbackState.submitSuccess) {
-                SubmitSuccessSnackbar(
-                    message = t["Report submitted successfully!"],
-                    onDismiss = { feedbackVm.clearSubmitSuccess() }
+            TextButton(
+                onClick = { showAdvanced = !showAdvanced },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (showAdvanced) t["Hide advanced settings"] else t["Advanced settings"]) }
+            if (showAdvanced) {
+                DeviceCompatibilityCard(
+                    specs = ui.deviceSpecs,
+                    onWatchTutorial = { viewModel.openTutorial() },
+                    onSimulateTier = { viewModel.setSimulatedTier(it) }
                 )
+                OverlaySettingsCard(
+                    ui = ui,
+                    viewModel = viewModel,
+                )
+                FeatureToolsCard(
+                    settings = ui.settings,
+                    profiles = feedbackApp.container.captionProfiles,
+                    glossary = feedbackApp.container.glossary,
+                    micPermissionGranted = ui.micPermissionGranted,
+                    overlayPermissionGranted = ui.overlayPermissionGranted,
+                    voskModels = ui.voskModels,
+                    onApplyProfile = viewModel::applyProfile,
+                    onSaveHistoryChange = viewModel::updateSaveHistory,
+                )
+                UiLanguageCard(
+                    languageCode = ui.uiLanguageCode,
+                    busy = ui.uiLocalizationBusy,
+                    error = ui.uiLocalizationError,
+                    stage = ui.uiLocalizationStage,
+                    translatedCount = ui.uiLocalizationTranslated,
+                    translatedTotal = ui.uiLocalizationTotal,
+                    onSelect = viewModel::updateUiLanguage
+                )
+                ServerCard(
+                    ui = ui,
+                    translateUrl = translateUrlDraft,
+                    onTranslateUrlChange = { translateUrlDraft = it },
+                    onSaveTranslateUrl = { viewModel.updateBaseUrl(translateUrlDraft) },
+                    onRefreshLibre = { viewModel.refreshLibreCatalog() },
+                    onSelectTranslationBackend = viewModel::updateTranslationBackend,
+                    sttUrl = sttUrlDraft,
+                    onSttUrlChange = { sttUrlDraft = it },
+                    onSaveSttUrl = { viewModel.updateSttUrl(sttUrlDraft) },
+                    showStt = ui.settings.audioSource == AudioSource.SYSTEM &&
+                        ui.settings.sttBackend == SttBackend.REMOTE_WHISPER
+                )
+
             }
+            Spacer(modifier = Modifier.height(16.dp))
 
             Spacer(Modifier.height(8.dp))
         }
@@ -332,31 +318,6 @@ fun MainScreen(
             )
         }
 
-        if (feedbackState.showReportDialog) {
-            ReportProblemDialog(
-                state = feedbackState,
-                onDismiss = { feedbackVm.hideReportDialog() },
-                onTitleChange = { feedbackVm.updateReportTitle(it) },
-                onDescriptionChange = { feedbackVm.updateReportDescription(it) },
-                onNameChange = { feedbackVm.updateReporterName(it) },
-                onEmailChange = { feedbackVm.updateReporterEmail(it) },
-                onIncludeDiagnosticsChange = { feedbackVm.updateIncludeDiagnostics(it) },
-                onAttachmentSelected = { feedbackVm.updateAttachmentUri(it) },
-                onClearAttachment = { feedbackVm.clearAttachment() },
-                onSubmit = { feedbackVm.submitReport() }
-            )
-        }
-
-        if (feedbackState.showIssueDetails) {
-            IssueDetailsDialog(
-                state = feedbackState,
-                onDismiss = { feedbackVm.closeIssueDetails() },
-                onReplyTextChange = { feedbackVm.updateReplyText(it) },
-                onReplyAttachmentSelected = { feedbackVm.updateReplyAttachmentUri(it) },
-                onClearReplyAttachment = { feedbackVm.clearReplyAttachment() },
-                onPostReply = { feedbackVm.postReply() }
-            )
-        }
     }
 }
 

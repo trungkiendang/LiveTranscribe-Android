@@ -177,7 +177,6 @@ dependencies {
     // Play In-App Review — lets happy users leave a Play Store rating
     // without leaving the app. No-ops gracefully when Play Store isn't
     // installed (e.g. sideloaded github-flavor builds).
-    implementation("com.google.android.play:review-ktx:2.0.2")
 
 
     testImplementation("junit:junit:4.13.2")

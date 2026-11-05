@@ -201,6 +201,8 @@ object UiStringCatalog {
         "Restore purchase",
         "Refresh status",
 
+        "Advanced settings",
+        "Hide advanced settings",
         // Feedback / support
         "Support & Feedback",
         "GitHub feedback is not configured.",
