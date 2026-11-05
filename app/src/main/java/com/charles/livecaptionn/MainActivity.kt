@@ -28,8 +28,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.charles.livecaptionn.ads.AdUnits
-import com.charles.livecaptionn.ads.BannerAd
 import com.charles.livecaptionn.review.ReviewPrompter
 import com.charles.livecaptionn.service.CaptionForegroundService
 import com.charles.livecaptionn.service.MediaProjectionHolder
@@ -125,9 +123,6 @@ class MainActivity : ComponentActivity() {
                                         onCheckoutSessionConsumed = { pendingCheckoutSessionId = null },
                                         modifier = Modifier.weight(1f)
                                     )
-                                }
-                                if (AdUnits.ENABLED && AdUnits.BANNER.isNotBlank()) {
-                                    BannerAd()
                                 }
                             }
                         }

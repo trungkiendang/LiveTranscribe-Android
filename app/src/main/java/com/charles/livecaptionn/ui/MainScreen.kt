@@ -91,9 +91,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.charles.livecaptionn.ads.AdUnits
 import com.charles.livecaptionn.billing.PremiumProduct
-import com.charles.livecaptionn.ads.NativeAdCard
 import com.charles.livecaptionn.settings.AudioSource
 import com.charles.livecaptionn.settings.Language
 import com.charles.livecaptionn.settings.SttBackend
@@ -321,9 +319,6 @@ fun MainScreen(
                 onRestore = { premiumVm.restore() },
                 onRefresh = { premiumVm.refresh() }
             )
-            if (AdUnits.ENABLED && AdUnits.NATIVE.isNotBlank() && !premiumState.premium.hasAdFree) {
-                NativeAdCard()
-            }
             ServerCard(
                 ui = ui,
                 translateUrl = translateUrlDraft,

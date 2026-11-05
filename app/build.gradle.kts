@@ -69,44 +69,6 @@ android {
         val defaultStt = sanitizeServerUrl(localProps.getProperty("stt.url"), "http://localhost:9000/asr?output=json")
         buildConfigField("String", "DEFAULT_TRANSLATE_URL", "\"$defaultTranslate\"")
         buildConfigField("String", "DEFAULT_STT_URL", "\"$defaultStt\"")
-        buildConfigField("boolean", "ADS_ENABLED", localBool("ads.enabled", false).toString())
-        buildConfigField(
-            "String",
-            "ADMOB_APP_ID",
-            "\"${localProps.getProperty("ads.admob.app.id", "ca-app-pub-3940256099942544~3347511713")}\""
-        )
-        buildConfigField(
-            "String",
-            "ADMOB_APP_OPEN_ID_DEBUG",
-            "\"${localProps.getProperty("ads.admob.app.open.id.debug", "ca-app-pub-3940256099942544/9257395921")}\""
-        )
-        buildConfigField(
-            "String",
-            "ADMOB_APP_OPEN_ID_RELEASE",
-            "\"${localProps.getProperty("ads.admob.app.open.id.release", "")}\""
-        )
-        buildConfigField(
-            "String",
-            "ADMOB_BANNER_ID_DEBUG",
-            "\"${localProps.getProperty("ads.admob.banner.id.debug", "ca-app-pub-3940256099942544/9214589741")}\""
-        )
-        buildConfigField(
-            "String",
-            "ADMOB_BANNER_ID_RELEASE",
-            "\"${localProps.getProperty("ads.admob.banner.id.release", "")}\""
-        )
-        buildConfigField(
-            "String",
-            "ADMOB_NATIVE_ID_DEBUG",
-            "\"${localProps.getProperty("ads.admob.native.id.debug", "ca-app-pub-3940256099942544/2247696110")}\""
-        )
-        buildConfigField(
-            "String",
-            "ADMOB_NATIVE_ID_RELEASE",
-            "\"${localProps.getProperty("ads.admob.native.id.release", "")}\""
-        )
-        manifestPlaceholders["admobAppId"] =
-            localProps.getProperty("ads.admob.app.id", "ca-app-pub-3940256099942544~3347511713")
 
         // GitHub repo that the in-app update checker queries for new releases.
         buildConfigField("String", "UPDATE_REPO_OWNER", "\"chartmann1590\"")
@@ -226,14 +188,6 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-perf-ktx")
     // firebase-messaging and firebase-config were removed — not used.
-
-    // Google Mobile Ads (AdMob). Powers the banner at the bottom of the
-    // main UI and the app-open ad.
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
-
-    // ProcessLifecycleOwner — used by AppOpenAdManager to detect when the
-    // app comes to the foreground so the app-open ad can be shown.
-    implementation("androidx.lifecycle:lifecycle-process:2.8.6")
 
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.android.material:material:1.11.0")
