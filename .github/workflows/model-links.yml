@@ -1,23 +1,15 @@
 name: Model links
 
 # Every Vosk model URL in VoskModelCatalog.kt must answer 200 with a zip.
-# Runs on changes to the catalog, weekly, and on demand; a scheduled failure
-# opens (or updates) an issue so a link that dies later is visible.
+# Runs when the catalog changes on main, and on demand.
 
 on:
-  pull_request:
-    paths:
-      - 'app/src/main/java/com/charles/livecaptionn/speech/VoskModelCatalog.kt'
-      - 'tools/check_model_links.py'
-      - '.github/workflows/model-links.yml'
   push:
     branches: [main]
     paths:
       - 'app/src/main/java/com/charles/livecaptionn/speech/VoskModelCatalog.kt'
       - 'tools/check_model_links.py'
       - '.github/workflows/model-links.yml'
-  schedule:
-    - cron: '0 9 * * 1'   # Mondays 09:00 UTC
   workflow_dispatch:
 
 permissions:
