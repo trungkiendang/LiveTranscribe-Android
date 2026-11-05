@@ -8,7 +8,6 @@ import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
-import com.charles.livecaptionn.review.PlayReviewHelper
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import android.provider.Settings
@@ -28,9 +27,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.charles.livecaptionn.ads.AdUnits
-import com.charles.livecaptionn.ads.BannerAd
-import com.charles.livecaptionn.review.ReviewPrompter
 import com.charles.livecaptionn.service.CaptionForegroundService
 import com.charles.livecaptionn.service.MediaProjectionHolder
 import com.charles.livecaptionn.settings.AudioSource
@@ -46,9 +42,6 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private var showHistory by mutableStateOf(false)
-
-    /** Stripe Checkout session ID carried back by the /checkout/success deep link (github flavor). */
-    private var pendingCheckoutSessionId by mutableStateOf<String?>(null)
 
     private val audioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -72,22 +65,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleStartRequest(intent)
+    }
+
+    /** Quick Settings tile asks us to start captions; runs the normal permission flow. */
+    private fun handleStartRequest(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_START_CAPTIONING, false) != true) return
+        intent.removeExtra(EXTRA_START_CAPTIONING) // not again on rotation
+        startCaptioning()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Play In-App Review - trigger after 3 launches
-        try {
-            val prefs = getSharedPreferences("play_review", MODE_PRIVATE)
-            val count = prefs.getInt("launch_count", 0) + 1
-            prefs.edit().putInt("launch_count", count).apply()
-            if (count >= 3 && count % 5 == 0) {
-                lifecycleScope.launch {
-                    PlayReviewHelper.requestAndLaunch(this@MainActivity)
-                }
-            }
-        } catch (_: Exception) {}
-
+        handleStartRequest(intent)
         val app = application as LiveCaptionApp
-        pendingCheckoutSessionId = extractCheckoutSessionId(intent)
         setContent {
             val vm: MainViewModel = viewModel(factory = MainViewModelFactory(app.container, application))
             val settings by app.container.settingsRepository.settingsFlow
@@ -121,13 +115,8 @@ class MainActivity : ComponentActivity() {
                                         onStop = { stopCaptionService() },
                                         onOpenOverlaySettings = { vm.openOverlayPermissionSettings(this@MainActivity) },
                                         onHistory = { showHistory = true },
-                                        pendingCheckoutSessionId = pendingCheckoutSessionId,
-                                        onCheckoutSessionConsumed = { pendingCheckoutSessionId = null },
                                         modifier = Modifier.weight(1f)
                                     )
-                                }
-                                if (AdUnits.ENABLED && AdUnits.BANNER.isNotBlank()) {
-                                    BannerAd()
                                 }
                             }
                         }
@@ -135,18 +124,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        extractCheckoutSessionId(intent)?.let { pendingCheckoutSessionId = it }
-    }
-
-    private fun extractCheckoutSessionId(intent: Intent?): String? {
-        val data = intent?.data ?: return null
-        if (data.scheme != "livecaptionn" || data.host != "premium-return") return null
-        return data.getQueryParameter("session_id")
     }
 
     private fun requestAudioPermission() {
@@ -213,6 +190,9 @@ class MainActivity : ComponentActivity() {
             action = CaptionForegroundService.ACTION_STOP
         }
         startService(intent)
-        ReviewPrompter.onCaptioningSessionCompleted(this)
+    }
+
+    companion object {
+        const val EXTRA_START_CAPTIONING = "livecaptionn.extra.START_CAPTIONING"
     }
 }

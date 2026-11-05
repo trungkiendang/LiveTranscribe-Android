@@ -53,7 +53,7 @@ class MlKitAllLanguagesTest {
                 !ok -> "no translation returned"
                 else -> ""
             }
-            Log.i(TAG, "MLKIT_PAIR en->$code ok=$ok ms=$ms pro=${MlKitLanguages.requiresPro(code)} out=$text $why")
+            Log.i(TAG, "MLKIT_PAIR en->$code ok=$ok ms=$ms out=$text $why")
             if (!ok) failures += "$code: $why"
         }
         Log.i(TAG, "MLKIT_DONE tested=${offered.size} failed=${failures.size} $failures")

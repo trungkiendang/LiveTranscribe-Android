@@ -66,4 +66,15 @@ class UpdateCheckerTest {
     fun parseBuildNumber_dotSuffix_parsesBaseVersion() {
         assertEquals(1_000_042, UpdateChecker.parseBuildNumber("v1.0.42.hotfix"))
     }
+
+    @Test
+    fun isNewer_sameVersionAsRunningApp_isNotNewer() {
+        // Regression: CI app is versionCode 5 / versionName 1.0.5 and release tag v1.0.5.
+        assertEquals(false, UpdateChecker.isNewer(UpdateChecker.parseBuildNumber("v1.0.5")!!, "1.0.5"))
+    }
+
+    @Test
+    fun isNewer_laterTag_isNewer() {
+        assertEquals(true, UpdateChecker.isNewer(UpdateChecker.parseBuildNumber("v1.0.6")!!, "1.0.5"))
+    }
 }

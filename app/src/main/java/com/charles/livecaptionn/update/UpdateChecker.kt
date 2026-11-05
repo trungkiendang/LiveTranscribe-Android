@@ -19,7 +19,8 @@ import java.util.concurrent.TimeUnit
  * Update detection:
  *   - Parses `tag_name` from `/releases/latest`.
  *   - Expects the CI tag format `v1.0.<buildNumber>` set by `.github/workflows/build.yml`.
- *   - If `<buildNumber>` > [BuildConfig.VERSION_CODE], an [UpdateInfo] is emitted.
+ *   - If the tag's version is greater than [BuildConfig.VERSION_NAME] (both packed by
+ *     [parseBuildNumber]), an [UpdateInfo] is emitted.
  *
  * Tags that don't match the format are ignored, so manually tagged semver
  * releases won't accidentally trigger false positives. Dev builds (versionCode = 1)
@@ -57,7 +58,7 @@ class UpdateChecker {
                 }
                 val body = response.body?.string().orEmpty()
                 val parsed = parseRelease(body) ?: return@withContext null
-                if (parsed.buildNumber > BuildConfig.VERSION_CODE) {
+                if (isNewer(parsed.buildNumber, BuildConfig.VERSION_NAME)) {
                     mutable.value = parsed
                     parsed
                 } else {
@@ -133,6 +134,16 @@ class UpdateChecker {
             val minor = match.groupValues[2].toIntOrNull() ?: return null
             val patch = match.groupValues[3].toIntOrNull() ?: return null
             return major * 1_000_000 + minor * 1_000 + patch
+        }
+
+        /**
+         * True when [tagBuildNumber] (from [parseBuildNumber]) is newer than the running app.
+         * Compares against the packed [versionName]: comparing it with VERSION_CODE (the CI run
+         * number, e.g. 5) made every release look newer (1_000_005 > 5).
+         */
+        internal fun isNewer(tagBuildNumber: Int, versionName: String): Boolean {
+            val current = parseBuildNumber(versionName) ?: return false
+            return tagBuildNumber > current
         }
 
         private val TAG_REGEX = Regex("""v?(\d+)\.(\d+)\.(\d+)(?:[.\-].*)?""")

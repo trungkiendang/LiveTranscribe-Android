@@ -10,6 +10,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.os.Build
+import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.charles.livecaptionn.settings.AudioSource
@@ -65,20 +66,27 @@ class StreamingSttEngine(
     override fun stop() {
         running = false
         paused = false
-        captureJob?.cancel()
-        captureJob = null
+        // Unblocks a pending AudioRecord.read(); the capture loop then exits and
+        // releases the recognizer itself, so it is never closed mid-feed.
         try { audioRecord?.stop() } catch (_: Throwable) {}
-        try { audioRecord?.release() } catch (_: Throwable) {}
-        audioRecord = null
-        session?.finish()?.let { remainder ->
-            if (remainder.isNotBlank()) onResult(SpeechResult(remainder, isFinal = true))
-        }
-        session?.close()
-        session = null
+        val job = captureJob
+        captureJob = null
+        if (job == null) releaseResources() else job.cancel()
         if (audioSource == AudioSource.SYSTEM) {
             try { mediaProjection?.stop() } catch (_: Throwable) {}
         }
         statusMutable.value = RecognitionStatus.IDLE
+    }
+
+    private fun releaseResources() {
+        try { audioRecord?.release() } catch (_: Throwable) {}
+        audioRecord = null
+        val s = session
+        session = null
+        s?.finish()?.let { remainder ->
+            if (remainder.isNotBlank()) onResult(SpeechResult(remainder, isFinal = true))
+        }
+        s?.close()
     }
 
     override fun pause() {
@@ -157,11 +165,22 @@ class StreamingSttEngine(
         statusMutable.value = RecognitionStatus.LISTENING
         onError(null)
 
-        captureJob = scope.launch(Dispatchers.Default) { captureLoop(record) }
+        if (!running) { // stop() arrived while we were starting
+            releaseResources()
+            return
+        }
+        captureJob = scope.launch(Dispatchers.Default) {
+            try { captureLoop(record) } finally { releaseResources() }
+        }
     }
 
     private suspend fun captureLoop(record: AudioRecord) {
+        // Same priority class the platform gives audio threads: avoids capture overruns
+        // when the UI or translation is busy.
+        Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
         val buffer = ByteArray(CHUNK_BYTES)
+        val preRoll = ByteArray(CHUNK_BYTES) // last skipped silent chunk, fed before speech resumes
+        var preRollLen = 0
         var silentChunkStreak = 0
         var lastEmittedPartial = ""
         var sawAnyAudioEver = false
@@ -211,6 +230,18 @@ class StreamingSttEngine(
             }
 
             val localSession = session ?: break
+
+            // Idle gating: no utterance in progress and ~1s of quiet -> don't spend CPU on Vosk.
+            // The last skipped chunk is replayed first so a soft word onset is not lost.
+            if (isSilent && lastEmittedPartial.isEmpty() && silentChunkStreak > IDLE_SKIP_AFTER_CHUNKS) {
+                System.arraycopy(buffer, 0, preRoll, 0, read)
+                preRollLen = read
+                continue
+            }
+            if (preRollLen > 0) {
+                localSession.feed(preRoll, preRollLen)
+                preRollLen = 0
+            }
             val result = localSession.feed(buffer, read)
 
             if (result.accepted) {
@@ -288,6 +319,7 @@ class StreamingSttEngine(
         /** ~100ms at 16kHz mono 16-bit = 3200 bytes. Small chunks = live partials. */
         private const val CHUNK_BYTES = 3200
         private const val SILENCE_AVERAGE_ABS_THRESHOLD = 120
+        private const val IDLE_SKIP_AFTER_CHUNKS = 10 // ~1s of silence
         private const val SILENT_CHUNKS_BEFORE_SYSTEM_HINT = 30 // ~3s of silence
         private const val NO_CAPTURABLE_AUDIO_MESSAGE =
             "No capturable system audio yet. Play unmuted media in an app that allows audio capture."

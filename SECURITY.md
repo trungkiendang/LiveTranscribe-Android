@@ -7,7 +7,7 @@
 | latest  | :white_check_mark: |
 | older   | :x:                |
 
-Only the most recent release receives security fixes. Update to the latest version from the [releases page](https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest).
+Only the most recent release receives security fixes. Update to the latest version from the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest).
 
 ## Reporting a Vulnerability
 
@@ -15,7 +15,7 @@ Only the most recent release receives security fixes. Update to the latest versi
 
 Instead, please use GitHub's private security advisory feature:
 
-1. Go to the [Security tab](https://github.com/chartmann1590/LiveTranscribe-Android/security) of this repository.
+1. Go to the [Security tab](https://github.com/trungkiendang/LiveTranscribe-Android/security) of this repository.
 2. Click **Report a vulnerability**.
 3. Fill in the details and submit.
 

@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -188,25 +188,10 @@ class CaptionForegroundService : Service() {
             val sttLanguageCode = settings.sourceLanguageCode.ifBlank { "en" }
             val localeForSpeechRec = LocaleMap.bcp47(sttLanguageCode)
 
-            val premium = app.container.premiumRepository.state.first()
-            if (com.charles.livecaptionn.translation.ProStartGate.requiresPro(
-                    backend = settings.translationBackend,
-                    sourceLanguageCode = settings.sourceLanguageCode,
-                    targetLanguageCode = settings.targetLanguageCode,
-                    hasPro = premium.hasPro
-                )
-            ) {
-                failAndStop("This ML Kit language requires Pro. Choose a free language or upgrade.")
-                return@launch
-            }
             if (settings.sttBackend == SttBackend.LOCAL_VOSK) {
                 val model = app.container.voskRegistry.installedModelFor(sttLanguageCode)
                 if (model == null) {
                     failAndStop("No on-device model installed for '$sttLanguageCode'. Download one first.")
-                    return@launch
-                }
-                if (model.quality == com.charles.livecaptionn.speech.ModelQuality.LARGE && !premium.hasPro) {
-                    failAndStop("The large Vosk model requires Pro. Install or select a small model.")
                     return@launch
                 }
             }
@@ -230,7 +215,7 @@ class CaptionForegroundService : Service() {
 
             launch(Dispatchers.IO) {
                 translateRequests
-                    .debounce(TRANSLATE_DEBOUNCE_MS)
+                    .sample(TRANSLATE_DEBOUNCE_MS)
                     .collect {
                         while (true) {
                             val final = pendingFinalTranslations.poll() ?: break
@@ -317,7 +302,8 @@ class CaptionForegroundService : Service() {
                             context = this@CaptionForegroundService,
                             projection = mediaProjection!!,
                             sttUrl = settings.sttBaseUrl,
-                            languageCode = sttLanguageCode,
+                            // null => Whisper detects the spoken language itself.
+                            languageCode = if (settings.autoDetectSource) null else sttLanguageCode,
                             sourceLanguageCode = sttLanguageCode,
                             sttBackend = settings.sttBackend,
                             localSttClient = app.container.localVoskClient,
@@ -363,12 +349,11 @@ class CaptionForegroundService : Service() {
             combine(
                 app.container.runtimeStore.state,
                 app.container.settingsRepository.settingsFlow,
-                app.container.premiumRepository.state,
                 overlayReady
-            ) { runtime, settings, premium, _ -> Triple(runtime, settings, premium.hasPro) }
-                .collectLatest { (runtime, settings, hasPro) ->
+            ) { runtime, settings, _ -> runtime to settings }
+                .collectLatest { (runtime, settings) ->
                     val overlay = overlayController ?: return@collectLatest
-                    val ui = buildOverlayUi(runtime, settings, hasPro)
+                    val ui = buildOverlayUi(runtime, settings)
                     Log.d(
                         "CaptionService",
                         "overlay update lines=${runtime.transcriptLines.size} " +
@@ -383,8 +368,7 @@ class CaptionForegroundService : Service() {
 
     private fun buildOverlayUi(
         runtime: CaptionRuntimeState,
-        settings: CaptionSettings,
-        hasPro: Boolean
+        settings: CaptionSettings
     ) = OverlayUiState(
         originalText = runtime.originalText,
         translatedText = runtime.translatedText.ifBlank { runtime.originalText },
@@ -395,11 +379,8 @@ class CaptionForegroundService : Service() {
         opacity = settings.overlayOpacity,
         showOriginal = settings.showOriginal,
         minimized = settings.overlayMinimized,
-        // Defensive fallback: a lapsed subscription must never leave a stale
-        // Pro theme/font rendering — always re-check entitlement here, not
-        // just at the point the setting was saved.
-        themeId = if (hasPro) settings.overlayThemeId else OverlayThemeCatalog.FREE_THEME_ID,
-        fontId = if (hasPro) settings.overlayFontId else OverlayFontCatalog.FREE_FONT_ID
+        themeId = settings.overlayThemeId,
+        fontId = settings.overlayFontId
     )
 
     private fun queueTranslation(text: String, lineId: Long, isFinal: Boolean = false) {
@@ -417,15 +398,21 @@ class CaptionForegroundService : Service() {
         translateRequests.tryEmit(Unit)
     }
 
+    @Volatile private var lastTranslation: Pair<String, String>? = null
+
     private suspend fun translateSnapshot(request: TranslationRequest) {
         val captionSettings = app.container.settingsRepository.settingsFlow.first()
-        val translated = app.container.translationRepository.translate(
-            text = request.text,
-            sourceCode = captionSettings.sourceLanguageCode,
-            targetCode = captionSettings.targetLanguageCode,
-            autoDetect = currentAudioSource == AudioSource.SYSTEM || captionSettings.autoDetectSource
-        )
+        // A final usually repeats the last partial verbatim: reuse that translation.
+        val key = "${captionSettings.sourceLanguageCode}|${captionSettings.targetLanguageCode}|${captionSettings.translationBackend}|${request.text}"
+        val translated = lastTranslation?.takeIf { it.first == key }?.second
+            ?: app.container.translationRepository.translate(
+                text = request.text,
+                sourceCode = captionSettings.sourceLanguageCode,
+                targetCode = captionSettings.targetLanguageCode,
+                autoDetect = captionSettings.autoDetectSource
+            )
         if (translated.isBlank()) return
+        lastTranslation = key to translated
         val translatedWithGlossary = applyGlossary(translated, app.container.glossary.list())
         app.container.runtimeStore.update {
             val current = it.transcriptLines.any { line -> line.id == request.lineId }
@@ -436,14 +423,15 @@ class CaptionForegroundService : Service() {
             )
         }
         if (request.saveHistory && captionSettings.saveHistory) {
-            app.container.transcriptHistory.add(
-                TranscriptEntry(
-                    originalText = request.text,
-                    translatedText = translatedWithGlossary,
-                    sourceLanguage = if (currentAudioSource == AudioSource.SYSTEM) "auto" else captionSettings.sourceLanguageCode,
-                    targetLanguage = captionSettings.targetLanguageCode
-                )
+            // Own coroutine: the disk write must not delay the next translation.
+            // The store's Mutex keeps writes in order.
+            val entry = TranscriptEntry(
+                originalText = request.text,
+                translatedText = translatedWithGlossary,
+                sourceLanguage = if (currentAudioSource == AudioSource.SYSTEM) "auto" else captionSettings.sourceLanguageCode,
+                targetLanguage = captionSettings.targetLanguageCode
             )
+            serviceScope.launch(Dispatchers.IO) { app.container.transcriptHistory.add(entry) }
         }
     }
 
@@ -465,8 +453,7 @@ class CaptionForegroundService : Service() {
                 show(settings.overlayX, settings.overlayY, settings.overlayWidthDp, settings.overlayHeightDp)
             }
             val runtime = app.container.runtimeStore.state.value
-            val hasPro = app.container.premiumRepository.state.first().hasPro
-            overlayController?.update(buildOverlayUi(runtime, settings, hasPro))
+            overlayController?.update(buildOverlayUi(runtime, settings))
             overlayReady.value = overlayReady.value + 1
         }
     }
@@ -581,7 +568,7 @@ class CaptionForegroundService : Service() {
 
         private const val CHANNEL_ID = "caption_channel"
         private const val NOTIF_ID = 2001
-        private const val TRANSLATE_DEBOUNCE_MS = 450L
+        private const val TRANSLATE_DEBOUNCE_MS = 300L
         private const val NO_LINE_ID = -1L
     }
 }

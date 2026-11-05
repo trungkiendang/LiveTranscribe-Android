@@ -71,7 +71,6 @@ MVVM with manual dependency injection. No Hilt/Dagger — every dependency is wi
 - `LanguageCatalogStore` — lazy-loads ML Kit's static list, LibreTranslate's `/languages`, or installed Vosk models depending on selected backends.
 - `VoskModelRegistry` — manages bundled + downloaded Vosk models on disk; `LocalVoskSttClient` is the runtime entry point.
 - `UpdateChecker` + `UpdateCheckWorker` + `UpdateNotifier` — periodic WorkManager job (12 h, network-required, KEEP policy) polls the GitHub Releases API, compares against `BuildConfig.VERSION_CODE`, and posts a notification with a one-tap Download action.
-- `AppOpenAdManager` + `BannerAd` — AdMob integration. App-open ad is wired through `ProcessLifecycleOwner` to detect foreground entries.
 
 ### Settings model
 
@@ -109,5 +108,4 @@ Default endpoint configurable in-app, default sourced from `BuildConfig.DEFAULT_
 - **STT**: `com.alphacephei:vosk-android` (streaming on-device)
 - **Translation**: `com.google.mlkit:translate` (on-device)
 - **Background**: WorkManager (update checks)
-- **Ads**: `play-services-ads` (banner + app-open)
 - **Kotlin**: Coroutines + Flow

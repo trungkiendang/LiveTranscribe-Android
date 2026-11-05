@@ -134,7 +134,7 @@ val TUTORIAL_STEPS = listOf(
     )
 )
 
-const val REMOTE_SETUP_DOC_URL = "https://chartmann1590.github.io/LiveTranscribe-Android/remote-setup.html"
+const val REMOTE_SETUP_DOC_URL = "https://trungkiendang.github.io/LiveTranscribe-Android/remote-setup.html"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
