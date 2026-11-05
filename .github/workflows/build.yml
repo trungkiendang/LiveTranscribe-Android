@@ -3,7 +3,6 @@ name: Build APK
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
@@ -59,9 +58,14 @@ jobs:
           name: liven-apk
           path: liven-${{ github.run_number }}.apk
 
-      - name: Publish GitHub Release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Every merge/push to main publishes a release. The tag v1.0.<run number> matches the app's
+      # versionName, which is what the in-app update checker compares against.
+      - name: Publish GitHub Release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: LiveN v1.0.${{ github.run_number }}
           files: LiveN.apk
           generate_release_notes: true
