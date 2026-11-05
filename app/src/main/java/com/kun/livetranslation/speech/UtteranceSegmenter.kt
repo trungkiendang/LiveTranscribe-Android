@@ -9,7 +9,7 @@ import kotlin.math.abs
  * - Speech is detected against an adaptive noise floor (the quietest idle chunk of the last ~3 s), so a
  *   noisy room does not read as endless speech and a quiet voice still counts.
  * - A few chunks of audio before the first loud chunk are kept so soft word starts are not clipped.
- * - An utterance ends after [END_QUIET_CHUNKS] quiet chunks; most of that trailing silence is trimmed.
+ * - An utterance ends after [END_QUIET_CHUNKS] quiet chunks (~0.5 s); most of that trailing silence is trimmed.
  * - Very short bursts (a click, a cough) are dropped instead of being sent to the recognizer.
  * - A long utterance is cut at its quietest recent chunk rather than in the middle of a word.
  *
@@ -127,11 +127,11 @@ class UtteranceSegmenter {
         const val MIN_START_THRESHOLD = 150
         const val MIN_END_THRESHOLD = 110
         const val PRE_ROLL_CHUNKS = 3             // ~300 ms
-        const val END_QUIET_CHUNKS = 7            // ~0.7 s
+        const val END_QUIET_CHUNKS = 5            // ~0.5 s
         const val KEEP_TAIL_CHUNKS = 3
         const val MIN_SPEECH_CHUNKS = 3           // ignore bursts shorter than ~300 ms
         const val MIN_UTTERANCE_BYTES = BYTES_PER_SECOND * 4 / 10
-        const val MAX_UTTERANCE_BYTES = 8 * BYTES_PER_SECOND
+        const val MAX_UTTERANCE_BYTES = 5 * BYTES_PER_SECOND // continuous speech (video) -> a caption at least every ~5 s
         const val CUT_SEARCH_CHUNKS = 15          // ~1.5 s
     }
 }

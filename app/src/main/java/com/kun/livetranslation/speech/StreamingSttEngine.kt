@@ -190,6 +190,7 @@ class StreamingSttEngine(
         var preRollLen = 0
         var silentChunkStreak = 0
         var lastEmittedPartial = ""
+        var utteranceChunks = 0 // chunks fed since the last final
         var sawAnyAudioEver = false
 
         while (scope.isActive && running) {
@@ -251,12 +252,23 @@ class StreamingSttEngine(
             }
             val result = localSession.feed(buffer, read)
 
+            utteranceChunks++
             if (result.accepted) {
                 // Vosk hit a silence/segment boundary and emitted a finalized chunk.
                 if (result.text.isNotBlank()) {
                     onResult(SpeechResult(result.text, isFinal = true))
                     lastEmittedPartial = ""
                 }
+                utteranceChunks = 0
+            } else if (lastEmittedPartial.isNotEmpty() && isSilent &&
+                utteranceChunks >= SOFT_CUT_MIN_CHUNKS && silentChunkStreak >= SOFT_CUT_QUIET_CHUNKS
+            ) {
+                // Continuous speech (a video) rarely gives Vosk the long pause it waits for, so the
+                // utterance and its translation grow for many seconds. A short breath ends it instead.
+                val text = localSession.endUtterance().ifBlank { lastEmittedPartial }
+                onResult(SpeechResult(text, isFinal = true))
+                lastEmittedPartial = ""
+                utteranceChunks = 0
             } else if (result.text.isNotBlank() && result.text != lastEmittedPartial) {
                 // Live partial — drives the "words appearing as you speak" overlay.
                 onResult(SpeechResult(result.text, isFinal = false))
@@ -327,6 +339,8 @@ class StreamingSttEngine(
         private const val CHUNK_BYTES = 3200
         private const val SILENCE_AVERAGE_ABS_THRESHOLD = 120
         private const val IDLE_SKIP_AFTER_CHUNKS = 10 // ~1s of silence
+        private const val SOFT_CUT_MIN_CHUNKS = 25 // only cut utterances longer than ~2.5 s
+        private const val SOFT_CUT_QUIET_CHUNKS = 2 // ...at a ~200 ms pause
         private const val SILENT_CHUNKS_BEFORE_SYSTEM_HINT = 30 // ~3s of silence
         private const val NO_CAPTURABLE_AUDIO_MESSAGE =
             "No capturable system audio yet. Play unmuted media in an app that allows audio capture."
