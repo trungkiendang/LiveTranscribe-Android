@@ -136,6 +136,9 @@ class MainViewModel(
         container.updateChecker.dismiss()
     }
 
+    /** Manual "Check for updates" from Settings. */
+    suspend fun checkForUpdates(): com.kun.livetranslation.update.UpdateChecker.Result = container.updateChecker.checkNow()
+
     fun openUpdateUrl(context: Context, info: UpdateInfo) {
         val target = info.apkDownloadUrl ?: info.releasePageUrl
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target)).apply {

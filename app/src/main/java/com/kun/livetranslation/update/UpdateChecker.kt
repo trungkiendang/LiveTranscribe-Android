@@ -36,12 +36,22 @@ class UpdateChecker {
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
+    /** Result of one update check, so the UI can tell "up to date" from "could not check". */
+    sealed interface Result {
+        data class Available(val info: UpdateInfo) : Result
+        data object UpToDate : Result
+        data class Failed(val reason: String) : Result
+    }
+
+    /** Background check (launch + WorkManager): the [UpdateInfo] when a newer build exists, else null. */
+    suspend fun check(): UpdateInfo? = (checkNow() as? Result.Available)?.info
+
     /**
-     * Fetches /releases/latest. Returns the [UpdateInfo] when a newer build is
-     * found (and pushes it into [available]), or null otherwise.
+     * Fetches /releases/latest and compares it with the running version. A newer build is also
+     * pushed into [available] (the banner); otherwise [available] is cleared.
      */
-    suspend fun check(): UpdateInfo? = withContext(Dispatchers.IO) {
-        if (!BuildConfig.GITHUB_SELF_UPDATE_ENABLED) return@withContext null
+    suspend fun checkNow(): Result = withContext(Dispatchers.IO) {
+        if (!BuildConfig.GITHUB_SELF_UPDATE_ENABLED) return@withContext Result.Failed("Updates are disabled in this build")
         val url = "https://api.github.com/repos/${BuildConfig.UPDATE_REPO_OWNER}/" +
             "${BuildConfig.UPDATE_REPO_NAME}/releases/latest"
         val request = Request.Builder()
@@ -54,22 +64,22 @@ class UpdateChecker {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Update check HTTP ${response.code}")
-                    return@withContext null
+                    return@withContext Result.Failed("GitHub answered HTTP ${response.code}")
                 }
-                val body = response.body?.string().orEmpty()
-                val parsed = parseRelease(body) ?: return@withContext null
+                val parsed = parseRelease(response.body?.string().orEmpty())
+                    ?: return@withContext Result.Failed("No release found")
                 if (isNewer(parsed.buildNumber, BuildConfig.VERSION_NAME)) {
                     mutable.value = parsed
-                    parsed
+                    Result.Available(parsed)
                 } else {
                     // Keep prior value cleared so dismissed banners stay dismissed.
                     mutable.value = null
-                    null
+                    Result.UpToDate
                 }
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Update check failed", t)
-            null
+            Result.Failed(t.message ?: t.javaClass.simpleName)
         }
     }
 

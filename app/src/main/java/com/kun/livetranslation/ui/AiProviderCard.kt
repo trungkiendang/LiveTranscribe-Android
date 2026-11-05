@@ -36,10 +36,13 @@ import androidx.compose.ui.unit.dp
 import com.kun.livetranslation.LiveCaptionApp
 import com.kun.livetranslation.ai.AiCatalog
 import com.kun.livetranslation.ai.AiConfig
+import com.kun.livetranslation.ai.AiModelInfo
 import com.kun.livetranslation.ai.AiProvider
 import com.kun.livetranslation.ai.AiTestReport
 import com.kun.livetranslation.ai.ModelOption
 import com.kun.livetranslation.ui.l10n.LocalUiStrings
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -58,6 +61,22 @@ internal fun AiProviderCard(saved: AiConfig, onSave: (AiConfig) -> Unit) {
     var report by remember { mutableStateOf<AiTestReport?>(null) }
     var testedDraft by remember { mutableStateOf<AiConfig?>(null) }
     var pickingStt by remember { mutableStateOf<Boolean?>(null) } // null = dialog closed
+
+    // As soon as a key is typed, ask the provider for its models: this both validates the key
+    // and fills the model picker with real names and limits.
+    var models by remember { mutableStateOf<List<AiModelInfo>>(emptyList()) }
+    var fetching by remember { mutableStateOf(false) }
+    var fetchError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(draft.provider, draft.apiKey.trim(), draft.endpoint) {
+        models = emptyList()
+        fetchError = null
+        if (draft.apiKey.trim().length < MIN_KEY_LENGTH) return@LaunchedEffect
+        delay(700) // wait for typing to pause; the effect restarts on every change
+        fetching = true
+        api.listModels(draft).fold({ models = it }, { fetchError = it.message })
+        fetching = false
+    }
+    val modelOptions = AiCatalog.merge(models, AiCatalog.recommended(draft))
 
     fun edit(next: AiConfig) {
         draft = next
@@ -128,11 +147,17 @@ internal fun AiProviderCard(saved: AiConfig, onSave: (AiConfig) -> Unit) {
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
+            when {
+                fetching -> Text(t["Checking key and loading models…"], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                fetchError != null -> Text("✗ $fetchError", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                models.isNotEmpty() -> Text("✓ ${t["Key accepted"]} · ${models.size} ${t["models available"]}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
 
             ModelField(
                 label = t["Model"],
                 value = draft.model,
                 recommended = AiCatalog.recommended(draft).firstOrNull { it.recommended }?.id,
+                details = modelOptions.firstOrNull { it.id.equals(draft.model.trim(), true) },
                 onChange = { edit(draft.copy(model = it)) },
                 onChoose = { pickingStt = false }
             )
@@ -141,6 +166,7 @@ internal fun AiProviderCard(saved: AiConfig, onSave: (AiConfig) -> Unit) {
                     label = t["Speech model"],
                     value = draft.sttModel,
                     recommended = AiCatalog.presetFor(draft)?.sttModel?.takeIf { it.isNotBlank() },
+                    details = modelOptions.firstOrNull { it.id.equals(draft.sttModel.trim(), true) },
                     onChange = { edit(draft.copy(sttModel = it)) },
                     onChoose = { pickingStt = true }
                 )
@@ -194,7 +220,10 @@ internal fun AiProviderCard(saved: AiConfig, onSave: (AiConfig) -> Unit) {
 
     pickingStt?.let { forStt ->
         ModelPickerDialog(
-            config = draft,
+            options = modelOptions,
+            loading = fetching,
+            error = fetchError,
+            noKey = draft.apiKey.isBlank(),
             onDismiss = { pickingStt = null },
             onPick = { id ->
                 edit(if (forStt) draft.copy(sttModel = id) else draft.copy(model = id))
@@ -205,7 +234,14 @@ internal fun AiProviderCard(saved: AiConfig, onSave: (AiConfig) -> Unit) {
 }
 
 @Composable
-private fun ModelField(label: String, value: String, recommended: String?, onChange: (String) -> Unit, onChoose: () -> Unit) {
+private fun ModelField(
+    label: String,
+    value: String,
+    recommended: String?,
+    details: ModelOption?,
+    onChange: (String) -> Unit,
+    onChoose: () -> Unit
+) {
     val t = LocalUiStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -220,6 +256,7 @@ private fun ModelField(label: String, value: String, recommended: String?, onCha
                 Text(t["Choose"])
             }
         }
+        details?.let { ModelDetails(it) }
         if (recommended != null && !value.equals(recommended, ignoreCase = true)) {
             Text(
                 text = "${t["Recommended"]}: $recommended",
@@ -263,44 +300,52 @@ private fun Line(ok: Boolean, text: String) {
     )
 }
 
-/** Recommended models first; "Fetch" loads the provider's own list. */
+/** Shows what we know about a model: name, size limits, provider description, our hint. */
 @Composable
-private fun ModelPickerDialog(config: AiConfig, onDismiss: () -> Unit, onPick: (String) -> Unit) {
-    val t = LocalUiStrings.current
-    val api = (LocalContext.current.applicationContext as LiveCaptionApp).container.aiApi
-    val scope = rememberCoroutineScope()
-    val recommended = AiCatalog.recommended(config)
-    var options by remember { mutableStateOf<List<ModelOption>>(AiCatalog.merge(emptyList(), recommended)) }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+private fun ModelDetails(m: ModelOption, modifier: Modifier = Modifier) {
+    val info = m.info
+    val title = info?.displayName?.takeIf { it.isNotBlank() && !it.equals(m.id, true) }
+    val facts = listOfNotNull(title, info?.summary?.takeIf { it.isNotBlank() }, m.note.takeIf { it.isNotBlank() }).joinToString(" · ")
+    Column(modifier) {
+        if (facts.isNotBlank()) {
+            Text(facts, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        info?.description?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+        }
+    }
+}
 
+/** Recommended models first, then everything the provider reported (loaded automatically). */
+@Composable
+private fun ModelPickerDialog(
+    options: List<ModelOption>,
+    loading: Boolean,
+    error: String?,
+    noKey: Boolean,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit
+) {
+    val t = LocalUiStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(t["Close"]) } },
         title = { Text(t["Choose a model"]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    enabled = !loading && config.apiKey.isNotBlank(),
-                    onClick = {
-                        loading = true
-                        error = null
-                        scope.launch {
-                            api.listModels(config).fold(
-                                { ids -> options = AiCatalog.merge(ids, recommended) },
-                                { e -> error = e.message }
-                            )
-                            loading = false
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(if (loading) t["Loading…"] else t["Fetch models from provider"]) }
-                error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                if (options.isEmpty()) {
-                    Text(t["No models yet. Enter an API key and fetch the list."], style = MaterialTheme.typography.bodySmall)
+                when {
+                    loading -> Text(t["Loading…"], style = MaterialTheme.typography.bodySmall)
+                    error != null -> Text("✗ $error", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    noKey -> Text(t["Enter an API key to load the provider's full model list."], style = MaterialTheme.typography.bodySmall)
                 }
                 Column(
-                    Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState()),
+                    Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     options.forEach { m ->
@@ -311,9 +356,7 @@ private fun ModelPickerDialog(config: AiConfig, onDismiss: () -> Unit, onPick: (
                                     Text(t["Recommended"], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
-                            if (m.note.isNotBlank()) {
-                                Text(m.note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            ModelDetails(m)
                         }
                     }
                 }
@@ -321,3 +364,5 @@ private fun ModelPickerDialog(config: AiConfig, onDismiss: () -> Unit, onPick: (
         }
     )
 }
+
+private const val MIN_KEY_LENGTH = 8

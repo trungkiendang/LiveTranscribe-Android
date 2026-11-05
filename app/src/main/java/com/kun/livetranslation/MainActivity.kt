@@ -35,6 +35,7 @@ import com.kun.livetranslation.ui.MainScreen
 import com.kun.livetranslation.ui.MainViewModel
 import com.kun.livetranslation.ui.MainViewModelFactory
 import com.kun.livetranslation.ui.OnboardingScreen
+import com.kun.livetranslation.ui.SettingsScreen
 import com.kun.livetranslation.ui.l10n.UiStringsProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private var showHistory by mutableStateOf(false)
+    private var showSettings by mutableStateOf(false)
 
     private val audioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -107,6 +109,14 @@ class MainActivity : ComponentActivity() {
                                         onBack = { showHistory = false },
                                         modifier = Modifier.weight(1f)
                                     )
+                                } else if (showSettings) {
+                                    androidx.activity.compose.BackHandler { showSettings = false }
+                                    SettingsScreen(
+                                        viewModel = vm,
+                                        onBack = { showSettings = false },
+                                        onAddQuickTile = { requestAddQuickTile() },
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 } else {
                                     MainScreen(
                                         viewModel = vm,
@@ -115,7 +125,7 @@ class MainActivity : ComponentActivity() {
                                         onStop = { stopCaptionService() },
                                         onOpenOverlaySettings = { vm.openOverlayPermissionSettings(this@MainActivity) },
                                         onHistory = { showHistory = true },
-                                        onAddQuickTile = { requestAddQuickTile() },
+                                        onOpenSettings = { showSettings = true },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
