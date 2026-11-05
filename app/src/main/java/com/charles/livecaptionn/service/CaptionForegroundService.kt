@@ -397,15 +397,21 @@ class CaptionForegroundService : Service() {
         translateRequests.tryEmit(Unit)
     }
 
+    @Volatile private var lastTranslation: Pair<String, String>? = null
+
     private suspend fun translateSnapshot(request: TranslationRequest) {
         val captionSettings = app.container.settingsRepository.settingsFlow.first()
-        val translated = app.container.translationRepository.translate(
-            text = request.text,
-            sourceCode = captionSettings.sourceLanguageCode,
-            targetCode = captionSettings.targetLanguageCode,
-            autoDetect = currentAudioSource == AudioSource.SYSTEM || captionSettings.autoDetectSource
-        )
+        // A final usually repeats the last partial verbatim: reuse that translation.
+        val key = "${captionSettings.sourceLanguageCode}|${captionSettings.targetLanguageCode}|${captionSettings.translationBackend}|${request.text}"
+        val translated = lastTranslation?.takeIf { it.first == key }?.second
+            ?: app.container.translationRepository.translate(
+                text = request.text,
+                sourceCode = captionSettings.sourceLanguageCode,
+                targetCode = captionSettings.targetLanguageCode,
+                autoDetect = currentAudioSource == AudioSource.SYSTEM || captionSettings.autoDetectSource
+            )
         if (translated.isBlank()) return
+        lastTranslation = key to translated
         val translatedWithGlossary = applyGlossary(translated, app.container.glossary.list())
         app.container.runtimeStore.update {
             val current = it.transcriptLines.any { line -> line.id == request.lineId }
@@ -561,7 +567,7 @@ class CaptionForegroundService : Service() {
 
         private const val CHANNEL_ID = "caption_channel"
         private const val NOTIF_ID = 2001
-        private const val TRANSLATE_DEBOUNCE_MS = 450L
+        private const val TRANSLATE_DEBOUNCE_MS = 300L
         private const val NO_LINE_ID = -1L
     }
 }
