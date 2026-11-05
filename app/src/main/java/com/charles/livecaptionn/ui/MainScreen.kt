@@ -253,18 +253,13 @@ fun MainScreen(
                 ui = ui,
                 viewModel = viewModel,
                 onManageModels = { showVoskSheet = true },
-                hasPro = true,
-                onRequiresPro = {}
             )
             OverlaySettingsCard(
                 ui = ui,
                 viewModel = viewModel,
-                hasPro = true,
-                onRequiresPro = {}
             )
             FeatureToolsCard(
                 settings = ui.settings,
-                hasPro = true,
                 profiles = feedbackApp.container.captionProfiles,
                 glossary = feedbackApp.container.glossary,
                 micPermissionGranted = ui.micPermissionGranted,
@@ -272,7 +267,6 @@ fun MainScreen(
                 voskModels = ui.voskModels,
                 onApplyProfile = viewModel::applyProfile,
                 onSaveHistoryChange = viewModel::updateSaveHistory,
-                onRequiresPro = {}
             )
             UiLanguageCard(
                 languageCode = ui.uiLanguageCode,
@@ -321,11 +315,9 @@ fun MainScreen(
                 models = ui.voskModels,
                 progress = ui.voskDownloadProgress,
                 errors = ui.voskDownloadErrors,
-                hasPro = true,
                 onDismiss = { showVoskSheet = false },
                 onDownload = viewModel::downloadVoskModel,
                 onDelete = viewModel::deleteVoskModel,
-                onRequiresPro = {}
             )
         }
 
@@ -743,16 +735,10 @@ private fun LanguageCard(
     ui: MainUiState,
     viewModel: MainViewModel,
     onManageModels: () -> Unit,
-    hasPro: Boolean,
-    onRequiresPro: () -> Unit
 ) {
     val sourceOptions = ui.availableSourceLanguages
     val targetOptions = ui.availableTargetLanguages
-    val usingMlKitGate = ui.settings.translationBackend == TranslationBackend.ML_KIT
     val t = LocalUiStrings.current
-    val languageRequiresPro: (Language) -> Boolean = { lang ->
-        usingMlKitGate && !hasPro && MlKitLanguages.requiresPro(lang.code)
-    }
 
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -764,9 +750,7 @@ private fun LanguageCard(
                 selectedCode = ui.settings.sourceLanguageCode,
                 options = sourceOptions,
                 placeholder = if (sourceOptions.isEmpty()) t["No languages available"] else t["Pick a language"],
-                onPick = { viewModel.updateSource(it.code) },
-                requiresPro = languageRequiresPro,
-                onRequiresPro = onRequiresPro
+                onPick = { viewModel.updateSource(it.code) }
             )
 
             // Swap + target
@@ -786,9 +770,7 @@ private fun LanguageCard(
                 selectedCode = ui.settings.targetLanguageCode,
                 options = targetOptions,
                 placeholder = if (targetOptions.isEmpty()) t["No languages available"] else t["Pick a language"],
-                onPick = { viewModel.updateTarget(it.code) },
-                requiresPro = languageRequiresPro,
-                onRequiresPro = onRequiresPro
+                onPick = { viewModel.updateTarget(it.code) }
             )
 
             // Context-specific helper text
@@ -871,9 +853,7 @@ private fun LanguagePickerField(
     selectedCode: String,
     options: List<Language>,
     placeholder: String,
-    onPick: (Language) -> Unit,
-    requiresPro: (Language) -> Boolean = { false },
-    onRequiresPro: () -> Unit = {}
+    onPick: (Language) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
     val selected = options.firstOrNull { it.code.equals(selectedCode, ignoreCase = true) }
@@ -909,11 +889,6 @@ private fun LanguagePickerField(
             onPick = {
                 onPick(it)
                 open = false
-            },
-            requiresPro = requiresPro,
-            onRequiresPro = {
-                open = false
-                onRequiresPro()
             }
         )
     }
@@ -924,9 +899,7 @@ internal fun LanguagePickerDialog(
     options: List<Language>,
     selectedCode: String,
     onDismiss: () -> Unit,
-    onPick: (Language) -> Unit,
-    requiresPro: (Language) -> Boolean = { false },
-    onRequiresPro: () -> Unit = {}
+    onPick: (Language) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
     val t = LocalUiStrings.current
@@ -958,21 +931,14 @@ internal fun LanguagePickerDialog(
                 ) {
                     filtered.forEach { lang ->
                         val isSelected = lang.code.equals(selectedCode, ignoreCase = true)
-                        val locked = requiresPro(lang)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { if (locked) onRequiresPro() else onPick(lang) }
+                                .clickable { onPick(lang) }
                                 .padding(vertical = 12.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             when {
-                                locked -> Icon(
-                                    Icons.Filled.Lock,
-                                    contentDescription = t["Requires Pro"],
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
                                 isSelected -> Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                                 else -> Spacer(Modifier.size(18.dp))
                             }
@@ -981,10 +947,10 @@ internal fun LanguagePickerDialog(
                                 Text(
                                     lang.name,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (locked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (locked) "${lang.code} · ${t["Pro"]}" else lang.code,
+                                    text = lang.code,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1012,11 +978,9 @@ internal fun LanguagePickerDialog(
 private fun VoskModelSheet(
     models: List<VoskModelInfo>,
     progress: Map<String, Float>,
-    hasPro: Boolean,
     onDismiss: () -> Unit,
     onDownload: (VoskModelInfo) -> Unit,
     onDelete: (VoskModelInfo) -> Unit,
-    onRequiresPro: () -> Unit,
     errors: Map<String, String> = emptyMap()
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1050,10 +1014,8 @@ private fun VoskModelSheet(
                         model = model,
                         progress = progress[model.modelName],
                         error = errors[model.modelName],
-                        locked = false,
                         onDownload = { onDownload(model) },
-                        onDelete = { onDelete(model) },
-                        onRequiresPro = onRequiresPro
+                        onDelete = { onDelete(model) }
                     )
                 }
             }
@@ -1070,10 +1032,8 @@ private fun VoskModelSheet(
                         model = model,
                         progress = progress[model.modelName],
                         error = errors[model.modelName],
-                        locked = !hasPro,
                         onDownload = { onDownload(model) },
-                        onDelete = { onDelete(model) },
-                        onRequiresPro = onRequiresPro
+                        onDelete = { onDelete(model) }
                     )
                 }
             }
@@ -1090,10 +1050,8 @@ private fun VoskModelSheet(
                         model = model,
                         progress = progress[model.modelName],
                         error = errors[model.modelName],
-                        locked = false,
                         onDownload = { onDownload(model) },
-                        onDelete = { onDelete(model) },
-                        onRequiresPro = onRequiresPro
+                        onDelete = { onDelete(model) }
                     )
                 }
             }
@@ -1117,10 +1075,8 @@ private fun VoskModelSheet(
 internal fun VoskRow(
     model: VoskModelInfo,
     progress: Float?,
-    locked: Boolean,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
-    onRequiresPro: () -> Unit,
     error: String? = null
 ) {
     val t = LocalUiStrings.current
@@ -1175,13 +1131,6 @@ internal fun VoskRow(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    locked -> {
-                        FilledTonalButton(onClick = onRequiresPro, shape = RoundedCornerShape(8.dp)) {
-                            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(t["Pro"])
-                        }
-                    }
                     else -> {
                         FilledTonalButton(onClick = onDownload, shape = RoundedCornerShape(8.dp)) {
                             Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1222,8 +1171,6 @@ private fun formatModelSize(sizeMb: Int): String {
 private fun OverlaySettingsCard(
     ui: MainUiState,
     viewModel: MainViewModel,
-    hasPro: Boolean,
-    onRequiresPro: () -> Unit
 ) {
     val t = LocalUiStrings.current
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
@@ -1264,12 +1211,11 @@ private fun OverlaySettingsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OverlayThemeCatalog.THEMES.forEach { theme ->
-                    val locked = !hasPro && theme.id != OverlayThemeCatalog.FREE_THEME_ID
                     ChoiceChip(
                         label = theme.label,
-                        icon = if (locked) Icons.Filled.Lock else Icons.Filled.Palette,
+                        icon = Icons.Filled.Palette,
                         selected = ui.settings.overlayThemeId == theme.id,
-                        onClick = { if (locked) onRequiresPro() else viewModel.updateOverlayTheme(theme.id) }
+                        onClick = { viewModel.updateOverlayTheme(theme.id) }
                     )
                 }
             }
@@ -1282,12 +1228,11 @@ private fun OverlaySettingsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OverlayFontCatalog.FONTS.forEach { font ->
-                    val locked = !hasPro && font.id != OverlayFontCatalog.FREE_FONT_ID
                     ChoiceChip(
                         label = font.label,
-                        icon = if (locked) Icons.Filled.Lock else Icons.Filled.TextFields,
+                        icon = Icons.Filled.TextFields,
                         selected = ui.settings.overlayFontId == font.id,
-                        onClick = { if (locked) onRequiresPro() else viewModel.updateOverlayFont(font.id) }
+                        onClick = { viewModel.updateOverlayFont(font.id) }
                     )
                 }
             }

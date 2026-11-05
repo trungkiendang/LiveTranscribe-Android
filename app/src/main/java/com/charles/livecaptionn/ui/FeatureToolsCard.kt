@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun FeatureToolsCard(
     settings: CaptionSettings,
-    hasPro: Boolean,
     profiles: CaptionProfileRepository,
     glossary: GlossaryRepository,
     micPermissionGranted: Boolean,
@@ -50,7 +49,6 @@ fun FeatureToolsCard(
     voskModels: List<VoskModelInfo>,
     onApplyProfile: (CaptionProfile) -> Unit,
     onSaveHistoryChange: (Boolean) -> Unit,
-    onRequiresPro: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val t = LocalUiStrings.current
@@ -97,27 +95,13 @@ fun FeatureToolsCard(
                     scope.launch { profiles.save(profile) }
                     profileItems = profileItems.filterNot { it.name == profile.name } + profile
                 }) { Text(t["Save preset"]) }
-                OutlinedButton(onClick = {
-                    if (hasPro) {
-                        val profile = CaptionProfile(
-                            name = t["Pro setup"],
-                            sourceLanguage = settings.sourceLanguageCode,
-                            targetLanguage = settings.targetLanguageCode,
-                            textSizeSp = settings.textSizeSp,
-                            showOriginal = settings.showOriginal,
-                            proOnly = true
-                        )
-                        scope.launch { profiles.save(profile) }
-                        profileItems = profileItems.filterNot { it.name == profile.name } + profile
-                    } else onRequiresPro()
-                }) { Text(t["Save Pro preset"]) }
             }
             if (profileItems.isNotEmpty()) {
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
                     items(profileItems, key = { it.id }) { profile ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(profile.name, Modifier.weight(1f))
-                            TextButton(onClick = { if (!profile.proOnly || hasPro) onApplyProfile(profile) else onRequiresPro() }) { Text(t["Use"]) }
+                            TextButton(onClick = { onApplyProfile(profile) }) { Text(t["Use"]) }
                             IconButton(onClick = {
                                 scope.launch { profiles.delete(profile.id) }
                                 profileItems = profileItems.filterNot { it.id == profile.id }
@@ -128,7 +112,7 @@ fun FeatureToolsCard(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(t["Glossary and phrase replacements"], Modifier.weight(1f))
-                TextButton(onClick = { if (hasPro) showGlossaryDialog = true else onRequiresPro() }) {
+                TextButton(onClick = { showGlossaryDialog = true }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                     Text(t["Add Pro"])
                 }

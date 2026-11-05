@@ -349,10 +349,10 @@ class CaptionForegroundService : Service() {
                 app.container.runtimeStore.state,
                 app.container.settingsRepository.settingsFlow,
                 overlayReady
-            ) { runtime, settings, _ -> Triple(runtime, settings, true) }
-                .collectLatest { (runtime, settings, hasPro) ->
+            ) { runtime, settings, _ -> runtime to settings }
+                .collectLatest { (runtime, settings) ->
                     val overlay = overlayController ?: return@collectLatest
-                    val ui = buildOverlayUi(runtime, settings, hasPro)
+                    val ui = buildOverlayUi(runtime, settings)
                     Log.d(
                         "CaptionService",
                         "overlay update lines=${runtime.transcriptLines.size} " +
@@ -367,8 +367,7 @@ class CaptionForegroundService : Service() {
 
     private fun buildOverlayUi(
         runtime: CaptionRuntimeState,
-        settings: CaptionSettings,
-        hasPro: Boolean
+        settings: CaptionSettings
     ) = OverlayUiState(
         originalText = runtime.originalText,
         translatedText = runtime.translatedText.ifBlank { runtime.originalText },
@@ -379,11 +378,8 @@ class CaptionForegroundService : Service() {
         opacity = settings.overlayOpacity,
         showOriginal = settings.showOriginal,
         minimized = settings.overlayMinimized,
-        // Defensive fallback: a lapsed subscription must never leave a stale
-        // Pro theme/font rendering — always re-check entitlement here, not
-        // just at the point the setting was saved.
-        themeId = if (hasPro) settings.overlayThemeId else OverlayThemeCatalog.FREE_THEME_ID,
-        fontId = if (hasPro) settings.overlayFontId else OverlayFontCatalog.FREE_FONT_ID
+        themeId = settings.overlayThemeId,
+        fontId = settings.overlayFontId
     )
 
     private fun queueTranslation(text: String, lineId: Long, isFinal: Boolean = false) {
@@ -449,8 +445,7 @@ class CaptionForegroundService : Service() {
                 show(settings.overlayX, settings.overlayY, settings.overlayWidthDp, settings.overlayHeightDp)
             }
             val runtime = app.container.runtimeStore.state.value
-            val hasPro = true
-            overlayController?.update(buildOverlayUi(runtime, settings, hasPro))
+            overlayController?.update(buildOverlayUi(runtime, settings))
             overlayReady.value = overlayReady.value + 1
         }
     }
