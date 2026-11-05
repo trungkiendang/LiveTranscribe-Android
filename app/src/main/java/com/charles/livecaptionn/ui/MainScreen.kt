@@ -118,6 +118,7 @@ fun MainScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onHistory: () -> Unit = {},
+    onAddQuickTile: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val ui by viewModel.state.collectAsStateWithLifecycle()
@@ -244,6 +245,10 @@ fun MainScreen(
                 viewModel = viewModel,
                 onManageModels = { showVoskSheet = true },
             )
+            OutlinedButton(
+                onClick = onAddQuickTile,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(t["Add quick toggle to status bar"]) }
             TextButton(
                 onClick = { showAdvanced = !showAdvanced },
                 modifier = Modifier.fillMaxWidth()

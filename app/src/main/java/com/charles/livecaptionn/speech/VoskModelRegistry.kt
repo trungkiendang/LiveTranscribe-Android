@@ -3,6 +3,9 @@ package com.charles.livecaptionn.speech
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -14,6 +17,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
+import java.io.RandomAccessFile
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
@@ -137,40 +142,9 @@ class VoskModelRegistry(private val context: Context) {
         try {
             val cacheDir = File(context.cacheDir, "vosk-downloads").apply { mkdirs() }
             val zipFile = File(cacheDir, "${info.modelName}.zip")
-            httpClient().newCall(Request.Builder().url(url).build()).execute().use { resp ->
-                if (!resp.isSuccessful) {
-                    Log.w("VoskModelRegistry", "Download of ${info.modelName} failed: HTTP ${resp.code} from $url")
-                    val reason = if (resp.code == 404) {
-                        "Download failed (HTTP 404): this model is no longer published"
-                    } else {
-                        "Download failed (HTTP ${resp.code})"
-                    }
-                    setError(info.modelName, reason)
-                    reportProgress(info.modelName, null)
-                    return@withContext false
-                }
-                val body = resp.body ?: run {
-                    setError(info.modelName, "Download failed: empty response")
-                    reportProgress(info.modelName, null)
-                    return@withContext false
-                }
-                val total = body.contentLength().coerceAtLeast(1)
-                body.byteStream().use { input ->
-                    FileOutputStream(zipFile).use { output ->
-                        val buffer = ByteArray(16 * 1024)
-                        var downloaded = 0L
-                        while (true) {
-                            val read = input.read(buffer)
-                            if (read <= 0) break
-                            output.write(buffer, 0, read)
-                            downloaded += read
-                            reportProgress(info.modelName, (downloaded.toFloat() / total).coerceIn(0f, 0.9f))
-                        }
-                    }
-                }
-            }
+            if (!download(info.modelName, url, zipFile)) return@withContext false
 
-            reportProgress(info.modelName, 0.92f)
+            reportProgress(info.modelName, 0.9f)
             val targetRoot = File(context.filesDir, "vosk/models").apply { mkdirs() }
             unzipInto(zipFile, targetRoot, info.modelName)
             zipFile.delete()
@@ -183,6 +157,117 @@ class VoskModelRegistry(private val context: Context) {
             reportProgress(info.modelName, null)
             false
         }
+    }
+
+    /**
+     * alphacephei.com throttles each connection hard (a few KB/s from some networks), so one
+     * stream takes many minutes. It supports HTTP Range, so big files are fetched as several
+     * parallel parts (throughput scales with the number of connections). Falls back to a single
+     * stream when the server does not report a size or range support.
+     */
+    private suspend fun download(modelName: String, url: String, zipFile: File): Boolean {
+        val size = rangeSupportedSize(url)
+        if (size == null || size < PARALLEL_MIN_BYTES) return downloadSingle(modelName, url, zipFile)
+        return try {
+            RandomAccessFile(zipFile, "rw").use { it.setLength(size) }
+            val done = AtomicLong(0)
+            var lastPercent = -1
+            val partSize = (size + PARTS - 1) / PARTS
+            coroutineScope {
+                (0 until PARTS).map { i ->
+                    async(Dispatchers.IO) {
+                        val start = i * partSize
+                        val end = minOf(size - 1, start + partSize - 1)
+                        if (start <= end) fetchPart(url, zipFile, start, end) { n ->
+                            val pct = (done.addAndGet(n) * 100 / size).toInt()
+                            if (pct != lastPercent) {
+                                lastPercent = pct
+                                reportProgress(modelName, (pct / 100f * 0.9f).coerceIn(0f, 0.9f))
+                            }
+                        }
+                    }
+                }.awaitAll()
+            }
+            true
+        } catch (t: Throwable) {
+            Log.w("VoskModelRegistry", "Parallel download of $modelName failed", t)
+            setError(modelName, describeFailure(t))
+            reportProgress(modelName, null)
+            false
+        }
+    }
+
+    /** Size in bytes if the server accepts byte ranges, else null. */
+    private fun rangeSupportedSize(url: String): Long? = try {
+        httpClient().newCall(Request.Builder().url(url).head().build()).execute().use { r ->
+            val len = r.header("Content-Length")?.toLongOrNull()
+            if (r.isSuccessful && r.header("Accept-Ranges").equals("bytes", ignoreCase = true) && len != null && len > 0) len else null
+        }
+    } catch (_: Throwable) { null }
+
+    /** Downloads bytes [start]..[end] into [file], resuming from the last byte on a dropped connection. */
+    private fun fetchPart(url: String, file: File, start: Long, end: Long, onBytes: (Long) -> Unit) {
+        var pos = start
+        var attempt = 0
+        while (pos <= end) {
+            try {
+                val req = Request.Builder().url(url).header("Range", "bytes=$pos-$end").build()
+                httpClient().newCall(req).execute().use { r ->
+                    if (r.code != 206) throw java.io.IOException("Server ignored range request (HTTP ${r.code})")
+                    val input = r.body?.byteStream() ?: throw java.io.IOException("empty response")
+                    RandomAccessFile(file, "rw").use { out ->
+                        out.seek(pos)
+                        val buf = ByteArray(64 * 1024)
+                        while (pos <= end) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                            pos += n
+                            onBytes(n.toLong())
+                        }
+                    }
+                }
+                if (pos <= end) throw java.io.IOException("connection closed early")
+            } catch (t: java.io.IOException) {
+                if (++attempt >= MAX_PART_RETRIES) throw t
+            }
+        }
+    }
+
+    private fun downloadSingle(modelName: String, url: String, zipFile: File): Boolean {
+    httpClient().newCall(Request.Builder().url(url).build()).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                Log.w("VoskModelRegistry", "Download of ${modelName} failed: HTTP ${resp.code} from $url")
+                val reason = if (resp.code == 404) {
+                    "Download failed (HTTP 404): this model is no longer published"
+                } else {
+                    "Download failed (HTTP ${resp.code})"
+                }
+                setError(modelName, reason)
+                reportProgress(modelName, null)
+                return false
+            }
+            val body = resp.body ?: run {
+                setError(modelName, "Download failed: empty response")
+                reportProgress(modelName, null)
+                return false
+            }
+            val total = body.contentLength().coerceAtLeast(1)
+            body.byteStream().use { input ->
+                FileOutputStream(zipFile).use { output ->
+                    val buffer = ByteArray(16 * 1024)
+                    var downloaded = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read <= 0) break
+                        output.write(buffer, 0, read)
+                        downloaded += read
+                        reportProgress(modelName, (downloaded.toFloat() / total).coerceIn(0f, 0.9f))
+                    }
+                }
+            }
+        }
+        return true
     }
 
     private fun setError(modelName: String, message: String) {
@@ -297,9 +382,15 @@ class VoskModelRegistry(private val context: Context) {
             if (exists()) deleteRecursively()
             mkdirs()
         }
-        ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
+        val zipIn = java.io.FileInputStream(zipFile)
+        val zipLen = zipFile.length().coerceAtLeast(1)
+        var lastPct = -1
+        ZipInputStream(zipIn.buffered(256 * 1024)).use { zis ->
             while (true) {
                 val entry = zis.nextEntry ?: break
+                // Extraction of a big model takes a while; keep the bar moving from 90% to 100%.
+                val pct = (zipIn.channel.position() * 100 / zipLen).toInt()
+                if (pct != lastPct) { lastPct = pct; reportProgress(expectedName, 0.9f + pct / 1000f) }
                 val outFile = File(stagingDir, entry.name)
                 // Path traversal guard
                 if (!outFile.canonicalPath.startsWith(stagingDir.canonicalPath)) continue
@@ -322,5 +413,11 @@ class VoskModelRegistry(private val context: Context) {
         }
         stagingDir.deleteRecursively()
         File(finalDir, ".installed").writeText("ok")
+    }
+
+    private companion object {
+        const val PARALLEL_MIN_BYTES = 4L * 1024 * 1024
+        const val PARTS = 6
+        const val MAX_PART_RETRIES = 5
     }
 }

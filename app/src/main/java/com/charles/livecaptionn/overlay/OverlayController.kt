@@ -6,10 +6,13 @@ import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -48,6 +51,14 @@ class OverlayController(
     private var minButton: ImageButton? = null
     private var closeButton: ImageButton? = null
     private var params: WindowManager.LayoutParams? = null
+    private var header: LinearLayout? = null
+    private var lastDetail: String? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var minimized = false
+    // Minimized view is just the header, so it must stay visible.
+    private val hideControlsTask = Runnable { if (!minimized) header?.visibility = View.GONE }
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val handleHitPx get() = dp(44)
 
     fun show(initialX: Int, initialY: Int, widthDp: Int, heightDp: Int) {
         if (root != null) return
@@ -77,7 +88,26 @@ class OverlayController(
         params = p
 
         // Root is a FrameLayout so we can place resize handle on top
-        val frame = FrameLayout(context)
+        val frame = object : FrameLayout(context) {
+            private var downX = 0f
+            private var downY = 0f
+            private var downOnHandle = false
+
+            // Take over once a touch turns into a drag, so the whole caption box moves
+            // (not just the header). Touches that start on the resize handle are left alone.
+            override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+                when (ev.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = ev.rawX; downY = ev.rawY
+                        downOnHandle = ev.x > width - handleHitPx && ev.y > height - handleHitPx
+                    }
+                    MotionEvent.ACTION_MOVE ->
+                        if (!downOnHandle && kotlin.math.hypot(ev.rawX - downX, ev.rawY - downY) > touchSlop) return true
+                }
+                return false
+            }
+        }
+        frame.setOnTouchListener(DragTouchListener())
 
         // Inner container (vertical layout)
         val container = LinearLayout(context).apply {
@@ -98,12 +128,12 @@ class OverlayController(
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setOnTouchListener(DragTouchListener())
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
+        this.header = header
 
         statusText = TextView(context).apply {
             text = "Status: Idle"
@@ -182,7 +212,10 @@ class OverlayController(
             addView(translatedText)
         }
 
-        body = ScrollView(context).apply {
+        body = object : ScrollView(context) {
+            override fun onInterceptTouchEvent(ev: MotionEvent) = false
+            override fun onTouchEvent(ev: MotionEvent) = false
+        }.apply {
             addView(scrollContent)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
@@ -197,23 +230,25 @@ class OverlayController(
 
         frame.addView(container)
 
-        // Resize handle at bottom-right corner
-        val handleSize = dp(22)
-        val resizeHandle = View(context).apply {
-            val bg = GradientDrawable().apply {
+        // Resize handle at bottom-right corner: small visible grip, large touch area.
+        val grip = View(context).apply {
+            background = GradientDrawable().apply {
                 cornerRadius = dp(4).toFloat()
                 setColor(Color.parseColor("#88FFFFFF"))
             }
-            background = bg
-            layoutParams = FrameLayout.LayoutParams(handleSize, handleSize).apply {
+            layoutParams = FrameLayout.LayoutParams(dp(18), dp(18)).apply { gravity = Gravity.CENTER }
+        }
+        val resizeHandle = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(handleHitPx, handleHitPx).apply {
                 gravity = Gravity.BOTTOM or Gravity.END
-                setMargins(0, 0, dp(4), dp(4))
             }
+            addView(grip)
             setOnTouchListener(ResizeTouchListener())
         }
         frame.addView(resizeHandle)
 
         root = frame
+        showControls()
         try {
             wm.addView(frame, p)
         } catch (t: Throwable) {
@@ -246,6 +281,10 @@ class OverlayController(
                 append(detail)
             }
         })
+        minimized = ui.minimized
+        val detailNow = ui.statusDetail?.trim().orEmpty()
+        if (detailNow.isNotEmpty() && detailNow != lastDetail) showControls()
+        lastDetail = detailNow
         pauseButton?.contentDescription = if (ui.status == RecognitionStatus.PAUSED) s["Resume captioning"] else s["Pause captioning"]
         minButton?.contentDescription = s["Minimize overlay"]
         closeButton?.contentDescription = s["Close overlay"]
@@ -302,6 +341,8 @@ class OverlayController(
         // guard with a stale non-null params while root is already null, crashing
         // with "view must not be null" inside WindowManager.
         params = null
+        handler.removeCallbacks(hideControlsTask)
+        header = null
         statusText = null
         originalContainer = null
         originalText = null
@@ -330,33 +371,65 @@ class OverlayController(
         setOnClickListener { onClick() }
     }
 
-    // ── Drag-to-move (touch on header) ──
+    /** Header (status + buttons) is shown on tap and hides itself after a few seconds, like One UI. */
+    private fun showControls() {
+        header?.visibility = View.VISIBLE
+        handler.removeCallbacks(hideControlsTask)
+        handler.postDelayed(hideControlsTask, CONTROLS_HIDE_MS)
+    }
+
+    /** Keep the box fully on screen and within the allowed size range. */
+    private fun clamp(lp: WindowManager.LayoutParams) {
+        val dm = context.resources.displayMetrics
+        val minW = (CaptionSettings.MIN_OVERLAY_WIDTH_DP * density).roundToInt()
+        val minH = (CaptionSettings.MIN_OVERLAY_HEIGHT_DP * density).roundToInt()
+        lp.width = lp.width.coerceIn(minOf(minW, dm.widthPixels), dm.widthPixels)
+        lp.height = lp.height.coerceIn(minOf(minH, dm.heightPixels), dm.heightPixels)
+        lp.x = lp.x.coerceIn(0, (dm.widthPixels - lp.width).coerceAtLeast(0))
+        lp.y = lp.y.coerceIn(0, (dm.heightPixels - lp.height).coerceAtLeast(0))
+    }
+
+    // ── Drag-to-move (touch anywhere on the overlay) ──
 
     private inner class DragTouchListener : View.OnTouchListener {
         private var startX = 0; private var startY = 0
         private var touchX = 0f; private var touchY = 0f
+        private var dragging = false
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             val lp = params ?: return false
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    startX = lp.x; startY = lp.y
-                    touchX = event.rawX; touchY = event.rawY
+                    dragging = false
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val view = root ?: return false
+                    // The frame takes over mid-gesture (no DOWN delivered), so start from here.
+                    if (!dragging) {
+                        dragging = true
+                        startX = lp.x; startY = lp.y
+                        touchX = event.rawX; touchY = event.rawY
+                        return true
+                    }
                     lp.x = startX + (event.rawX - touchX).roundToInt()
                     lp.y = startY + (event.rawY - touchY).roundToInt()
+                    clamp(lp)
                     try { wm.updateViewLayout(view, lp) } catch (_: IllegalArgumentException) { return false }
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
-                    scope.launch {
-                        settingsRepository.update { it.copy(overlayX = lp.x, overlayY = lp.y) }
+                    if (dragging) {
+                        scope.launch {
+                            settingsRepository.update { it.copy(overlayX = lp.x, overlayY = lp.y) }
+                        }
+                    } else {
+                        showControls() // a tap
                     }
+                    dragging = false
                     return true
                 }
+                MotionEvent.ACTION_CANCEL -> { dragging = false; return true }
             }
             return false
         }
@@ -370,18 +443,18 @@ class OverlayController(
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             val lp = params ?: return false
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startW = lp.width; startH = lp.height
                     touchX = event.rawX; touchY = event.rawY
+                    v.parent.requestDisallowInterceptTouchEvent(true)
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val view = root ?: return false
-                    val minW = (CaptionSettings.MIN_OVERLAY_WIDTH_DP * density).roundToInt()
-                    val minH = (CaptionSettings.MIN_OVERLAY_HEIGHT_DP * density).roundToInt()
-                    lp.width = (startW + (event.rawX - touchX).roundToInt()).coerceAtLeast(minW)
-                    lp.height = (startH + (event.rawY - touchY).roundToInt()).coerceAtLeast(minH)
+                    lp.width = startW + (event.rawX - touchX).roundToInt()
+                    lp.height = startH + (event.rawY - touchY).roundToInt()
+                    clamp(lp)
                     try { wm.updateViewLayout(view, lp) } catch (_: IllegalArgumentException) { return false }
                     return true
                 }
@@ -398,5 +471,9 @@ class OverlayController(
             }
             return false
         }
+    }
+
+    private companion object {
+        const val CONTROLS_HIDE_MS = 4_000L
     }
 }

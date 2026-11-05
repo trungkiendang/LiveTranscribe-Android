@@ -115,6 +115,7 @@ class MainActivity : ComponentActivity() {
                                         onStop = { stopCaptionService() },
                                         onOpenOverlaySettings = { vm.openOverlayPermissionSettings(this@MainActivity) },
                                         onHistory = { showHistory = true },
+                                        onAddQuickTile = { requestAddQuickTile() },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -123,6 +124,24 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    /** Asks Android to add our Quick Settings tile (status-bar shade). Android 13+ shows a one-tap prompt. */
+    private fun requestAddQuickTile() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getSystemService(android.app.StatusBarManager::class.java).requestAddTileService(
+                android.content.ComponentName(this, com.charles.livecaptionn.service.CaptionTileService::class.java),
+                getString(R.string.app_name),
+                android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_tile_caption),
+                mainExecutor
+            ) { }
+        } else {
+            android.widget.Toast.makeText(
+                this,
+                "Swipe down twice, tap the pencil (Edit) and drag Live CaptionN into your quick settings.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
         }
     }
 
