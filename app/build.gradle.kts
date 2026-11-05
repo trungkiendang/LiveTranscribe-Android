@@ -49,11 +49,11 @@ val appVersionName: String = System.getenv("ANDROID_VERSION_NAME")
     ?: "1.0.$appVersionCode"
 
 android {
-    namespace = "com.charles.livecaptionn"
+    namespace = "com.kun.livetranslation"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.charles.livecaptionn"
+        applicationId = "com.kun.livetranslation"
         minSdk = 28
         targetSdk = 36
         versionCode = appVersionCode
@@ -182,6 +182,8 @@ dependencies {
 
 
     testImplementation("junit:junit:4.13.2")
+    // Real org.json for JVM tests (the Android stubs throw "not mocked").
+    testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     // Espresso 3.7 supports the Android 17 input APIs used by the Pixel test device.

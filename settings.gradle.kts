@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LiveCaptionN"
+rootProject.name = "LiveN"
 include(":app")

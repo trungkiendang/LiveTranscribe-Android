@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'app/src/main/java/com/charles/livecaptionn/speech/VoskModelCatalog.kt'
+      - 'app/src/main/java/com/kun/livetranslation/speech/VoskModelCatalog.kt'
       - 'tools/check_model_links.py'
       - '.github/workflows/model-links.yml'
   workflow_dispatch:

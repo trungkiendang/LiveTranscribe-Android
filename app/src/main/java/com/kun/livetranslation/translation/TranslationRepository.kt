@@ -1,0 +1,23 @@
+package com.kun.livetranslation.translation
+
+interface TranslationRepository {
+    suspend fun translate(
+        text: String,
+        sourceCode: String,
+        targetCode: String,
+        autoDetect: Boolean
+    ): String
+
+    /**
+     * Eagerly download / warm up any offline assets required to translate
+     * from [sourceCode] to [targetCode]. Safe to call repeatedly. Default
+     * implementation is a no-op for backends that have nothing to prefetch.
+     */
+    suspend fun prewarm(sourceCode: String, targetCode: String) {}
+
+    /**
+     * Release any held resources (cached translators, HTTP clients, etc.).
+     * Called when the repository is no longer needed.
+     */
+    fun close() {}
+}

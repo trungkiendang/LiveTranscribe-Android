@@ -5,7 +5,7 @@ paste it, attach a screenshot or the promo video thumbnail. Swap the link
 for whichever store you're pushing that day.
 
 Links:
-- Play Store: https://play.google.com/store/apps/details?id=com.charles.livecaptionn
+- Play Store: https://play.google.com/store/apps/details?id=com.kun.livetranslation
 - GitHub/APK: https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest
 - Website: https://trungkiendang.github.io/LiveTranscribe-Android/
 
