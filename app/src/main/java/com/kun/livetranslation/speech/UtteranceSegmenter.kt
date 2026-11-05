@@ -83,7 +83,7 @@ class UtteranceSegmenter {
         return if (enough && clip.size >= MIN_UTTERANCE_BYTES) clip else null
     }
 
-    /** Too long: split at the quietest chunk of the last 1.5 s; the rest starts the next utterance. */
+    /** Too long: split at the quietest chunk of the last 1 s; the rest starts the next utterance. */
     private fun cutAtQuietest(): ByteArray? {
         val from = (chunks.size - CUT_SEARCH_CHUNKS).coerceAtLeast(1)
         var cut = chunks.size - 1
@@ -131,7 +131,7 @@ class UtteranceSegmenter {
         const val KEEP_TAIL_CHUNKS = 3
         const val MIN_SPEECH_CHUNKS = 3           // ignore bursts shorter than ~300 ms
         const val MIN_UTTERANCE_BYTES = BYTES_PER_SECOND * 4 / 10
-        const val MAX_UTTERANCE_BYTES = 5 * BYTES_PER_SECOND // continuous speech (video) -> a caption at least every ~5 s
-        const val CUT_SEARCH_CHUNKS = 15          // ~1.5 s
+        const val MAX_UTTERANCE_BYTES = 3 * BYTES_PER_SECOND // continuous speech (video) -> a caption at least every ~3 s
+        const val CUT_SEARCH_CHUNKS = 10          // ~1.0 s
     }
 }

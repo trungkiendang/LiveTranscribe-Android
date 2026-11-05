@@ -11,6 +11,7 @@ import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.Process
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.kun.livetranslation.settings.AudioSource
@@ -191,6 +192,9 @@ class StreamingSttEngine(
         var silentChunkStreak = 0
         var lastEmittedPartial = ""
         var utteranceChunks = 0 // chunks fed since the last final
+        var lastTail = ""
+        var utteranceStartMs = 0L
+        val committer = StablePrefixCommitter()
         var sawAnyAudioEver = false
 
         while (scope.isActive && running) {
@@ -254,31 +258,43 @@ class StreamingSttEngine(
 
             utteranceChunks++
             if (result.accepted) {
-                // Vosk hit a silence/segment boundary and emitted a finalized chunk.
-                if (result.text.isNotBlank()) {
-                    onResult(SpeechResult(result.text, isFinal = true))
-                    lastEmittedPartial = ""
-                }
+                // Vosk hit a silence/segment boundary: only the words not already committed are left.
+                val rest = committer.finish(result.text)
+                if (rest.isNotBlank()) emit(rest, isFinal = true, utteranceStartMs)
+                lastEmittedPartial = ""
+                lastTail = ""
                 utteranceChunks = 0
             } else if (lastEmittedPartial.isNotEmpty() && isSilent &&
                 utteranceChunks >= SOFT_CUT_MIN_CHUNKS && silentChunkStreak >= SOFT_CUT_QUIET_CHUNKS
             ) {
-                // Continuous speech (a video) rarely gives Vosk the long pause it waits for, so the
-                // utterance and its translation grow for many seconds. A short breath ends it instead.
-                val text = localSession.endUtterance().ifBlank { lastEmittedPartial }
-                onResult(SpeechResult(text, isFinal = true))
+                // A breath in continuous speech: close the utterance now instead of waiting for Vosk.
+                val rest = committer.finish(localSession.endUtterance().ifBlank { lastEmittedPartial })
+                if (rest.isNotBlank()) emit(rest, isFinal = true, utteranceStartMs)
                 lastEmittedPartial = ""
+                lastTail = ""
                 utteranceChunks = 0
             } else if (result.text.isNotBlank() && result.text != lastEmittedPartial) {
-                // Live partial — drives the "words appearing as you speak" overlay.
-                onResult(SpeechResult(result.text, isFinal = false))
+                if (lastEmittedPartial.isEmpty()) utteranceStartMs = SystemClock.elapsedRealtime()
                 lastEmittedPartial = result.text
+                // Words both of the last two partials agree on are final already: they are
+                // translated and shown now, the rest stays a live partial.
+                committer.update(result.text).forEach { emit(it, isFinal = true, utteranceStartMs) }
+                val tail = committer.tail(result.text)
+                if (tail.isNotBlank() && tail != lastTail) {
+                    onResult(SpeechResult(tail, isFinal = false))
+                    lastTail = tail
+                }
             }
 
             if (!paused && running) {
                 statusMutable.value = RecognitionStatus.LISTENING
             }
         }
+    }
+
+    private fun emit(text: String, isFinal: Boolean, utteranceStartMs: Long) {
+        Log.d(TAG, "caption final=$isFinal after ${SystemClock.elapsedRealtime() - utteranceStartMs} ms of utterance: '$text'")
+        onResult(SpeechResult(text, isFinal))
     }
 
     private fun buildAudioRecord(): AudioRecord? {
