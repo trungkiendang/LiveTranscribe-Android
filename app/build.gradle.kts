@@ -69,7 +69,7 @@ android {
         val defaultStt = sanitizeServerUrl(localProps.getProperty("stt.url"), "http://localhost:9000/asr?output=json")
         buildConfigField("String", "DEFAULT_TRANSLATE_URL", "\"$defaultTranslate\"")
         buildConfigField("String", "DEFAULT_STT_URL", "\"$defaultStt\"")
-        buildConfigField("boolean", "ADS_ENABLED", localBool("ads.enabled", true).toString())
+        buildConfigField("boolean", "ADS_ENABLED", localBool("ads.enabled", false).toString())
         buildConfigField(
             "String",
             "ADMOB_APP_ID",
