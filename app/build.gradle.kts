@@ -49,11 +49,11 @@ val appVersionName: String = System.getenv("ANDROID_VERSION_NAME")
     ?: "1.0.$appVersionCode"
 
 android {
-    namespace = "com.charles.livecaptionn"
+    namespace = "com.kun.livetranslation"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.charles.livecaptionn"
+        applicationId = "com.kun.livetranslation"
         minSdk = 28
         targetSdk = 36
         versionCode = appVersionCode

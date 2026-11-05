@@ -16,7 +16,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-CATALOG = Path(__file__).resolve().parents[1] / "app/src/main/java/com/charles/livecaptionn/speech/VoskModelCatalog.kt"
+CATALOG = Path(__file__).resolve().parents[1] / "app/src/main/java/com/kun/livetranslation/speech/VoskModelCatalog.kt"
 BASE = "https://alphacephei.com/vosk/models/"
 ROW = re.compile(r'(small|large)\(\s*"([a-z]{2})",\s*"[^"]+",\s*"([^"]+)",\s*(\d+)\s*\)')
 UA = {"User-Agent": "LiveCaptionN-model-link-check/1.0"}
