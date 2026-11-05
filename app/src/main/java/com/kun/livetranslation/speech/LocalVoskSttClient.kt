@@ -152,6 +152,17 @@ class VoskStreamingSession internal constructor(
         }
     }
 
+    /** Forces a segment boundary (faster than Vosk's own endpointer) and resets for the next utterance. */
+    override fun endUtterance(): String {
+        if (closed) return ""
+        return try {
+            LocalVoskSttClient.extractText(recognizer.finalResult).also { recognizer.reset() }
+        } catch (t: Throwable) {
+            Log.w("VoskStreamingSession", "endUtterance failed", t)
+            ""
+        }
+    }
+
     override fun close() {
         if (closed) return
         closed = true

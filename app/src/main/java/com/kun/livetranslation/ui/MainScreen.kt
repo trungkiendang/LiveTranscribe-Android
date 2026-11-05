@@ -565,37 +565,32 @@ private fun AudioSourceCard(
             )
             Text(t["Transcription engine"], style = MaterialTheme.typography.labelMedium)
             val isSttUnsupported = ui.deviceSpecs?.tier == CompatibilityTier.UNSUPPORTED
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ChoiceChip(
-                    label = if (isSystem) t["Remote Whisper"] else t["Android built-in"],
-                    icon = Icons.Filled.Cloud,
-                    selected = ui.settings.sttBackend == SttBackend.REMOTE_WHISPER,
-                    onClick = { viewModel.updateSttBackend(SttBackend.REMOTE_WHISPER) },
-                    modifier = Modifier.weight(1f)
-                )
-                ChoiceChip(
-                    label = if (isSttUnsupported) t["Local Vosk"] + " 🔒" else t["Local Vosk"],
+            val noAiKey = ui.settings.aiApiKey.isBlank()
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                EngineOption(
+                    title = t["Local Vosk"],
+                    subtitle = t["Runs on this device, works offline. Live words as you speak."],
                     icon = if (isSttUnsupported) Icons.Filled.Lock else Icons.Filled.Mic,
                     selected = ui.settings.sttBackend == SttBackend.LOCAL_VOSK,
-                    onClick = { viewModel.updateSttBackend(SttBackend.LOCAL_VOSK) },
-                    modifier = Modifier.weight(1f)
+                    badge = t["Offline"],
+                    onClick = { viewModel.updateSttBackend(SttBackend.LOCAL_VOSK) }
                 )
-                ChoiceChip(
-                    label = t["Cloud AI"],
+                EngineOption(
+                    title = t["Cloud AI"],
+                    subtitle = t["Sends your speech to your AI provider a few seconds at a time. Most accurate, needs internet."],
                     icon = Icons.Filled.Cloud,
                     selected = ui.settings.sttBackend == SttBackend.AI,
-                    onClick = { viewModel.updateSttBackend(SttBackend.AI) },
-                    modifier = Modifier.weight(1f)
+                    badge = if (noAiKey) t["Needs API key"] else t["Online"],
+                    badgeIsWarning = noAiKey,
+                    onClick = { viewModel.updateSttBackend(SttBackend.AI) }
                 )
-            }
-            if (ui.settings.sttBackend == SttBackend.AI) {
-                Text(
-                    text = t["Sends your speech to your cloud AI provider one phrase at a time. Set it up in Advanced settings."],
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                EngineOption(
+                    title = if (isSystem) t["Remote Whisper"] else t["Android built-in"],
+                    subtitle = if (isSystem) t["Your own Whisper server (set its URL below)."]
+                    else t["Google's recognizer built into Android. Microphone only."],
+                    icon = Icons.Filled.Cloud,
+                    selected = ui.settings.sttBackend == SttBackend.REMOTE_WHISPER,
+                    onClick = { viewModel.updateSttBackend(SttBackend.REMOTE_WHISPER) }
                 )
             }
             if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
@@ -663,6 +658,52 @@ internal fun ChoiceChip(
         Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+    }
+}
+
+/** One full-width, always fully readable engine choice: radio, title, what it is, and a small status badge. */
+@Composable
+internal fun EngineOption(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    badge: String? = null,
+    badgeIsWarning: Boolean = false
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(if (selected) 1.5.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant, shape)
+            .background(if (selected) scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = if (selected) scheme.primary else scheme.onSurfaceVariant)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f, fill = false))
+                if (badge != null) {
+                    Text(
+                        badge,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (badgeIsWarning) scheme.onErrorContainer else scheme.onSecondaryContainer,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (badgeIsWarning) scheme.errorContainer else scheme.secondaryContainer)
+                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                    )
+                }
+            }
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -969,7 +1010,7 @@ private fun VoskModelSheet(
             }
 
             if (availableLarge.isNotEmpty()) {
-                Text(t["Large · server-grade accuracy (Pro)"], style = MaterialTheme.typography.labelLarge)
+                Text(t["Large · server-grade accuracy"], style = MaterialTheme.typography.labelLarge)
                 Text(
                     text = t["Full Vosk server models with the lowest error rates. Each one is 80 MB to 2 GB but runs entirely on-device after the one-time download. This is the strongest transcription option for every language."],
                     style = MaterialTheme.typography.labelSmall,
@@ -1151,7 +1192,7 @@ private fun OverlaySettingsCard(
                 )
             }
 
-            Text(t["Overlay theme (Pro)"], style = MaterialTheme.typography.bodyMedium)
+            Text(t["Overlay theme"], style = MaterialTheme.typography.bodyMedium)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1168,7 +1209,7 @@ private fun OverlaySettingsCard(
                 }
             }
 
-            Text(t["Overlay font (Pro)"], style = MaterialTheme.typography.bodyMedium)
+            Text(t["Overlay font"], style = MaterialTheme.typography.bodyMedium)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1213,62 +1254,46 @@ private fun ServerCard(
             }
 
             val isTranslateUnsupported = ui.deviceSpecs?.tier == CompatibilityTier.UNSUPPORTED
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ChoiceChip(
-                    label = if (isTranslateUnsupported) t["On-device (ML Kit)"] + " 🔒" else t["On-device (ML Kit)"],
-                    icon = if (isTranslateUnsupported) Icons.Filled.Lock else Icons.Filled.Mic,
+            val noAiKey = ui.settings.aiApiKey.isBlank()
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                EngineOption(
+                    title = t["On-device (ML Kit)"],
+                    subtitle = t["Google ML Kit on this device. A ~30 MB model per language pair downloads once, then works offline."],
+                    icon = if (isTranslateUnsupported) Icons.Filled.Lock else Icons.Filled.Translate,
                     selected = ui.settings.translationBackend == TranslationBackend.ML_KIT,
-                    onClick = { onSelectTranslationBackend(TranslationBackend.ML_KIT) },
-                    modifier = Modifier.weight(1f)
+                    badge = t["Offline"],
+                    onClick = { onSelectTranslationBackend(TranslationBackend.ML_KIT) }
                 )
-                ChoiceChip(
-                    label = t["LibreTranslate"],
+                EngineOption(
+                    title = t["Cloud AI"],
+                    subtitle = t["Your AI provider translates the text, with better context. Set it up in Settings; without a key ML Kit is used."],
                     icon = Icons.Filled.Cloud,
-                    selected = ui.settings.translationBackend == TranslationBackend.LIBRE_TRANSLATE,
-                    onClick = { onSelectTranslationBackend(TranslationBackend.LIBRE_TRANSLATE) },
-                    modifier = Modifier.weight(1f)
-                )
-                ChoiceChip(
-                    label = t["Cloud AI"],
-                    icon = Icons.Filled.Translate,
                     selected = ui.settings.translationBackend == TranslationBackend.AI,
-                    onClick = { onSelectTranslationBackend(TranslationBackend.AI) },
-                    modifier = Modifier.weight(1f)
+                    badge = if (noAiKey) t["Needs API key"] else t["Online"],
+                    badgeIsWarning = noAiKey,
+                    onClick = { onSelectTranslationBackend(TranslationBackend.AI) }
                 )
                 // Only offered on Samsung phones, where One UI may provide a system translator.
                 if (SystemTranslationRepository.isOfferedOnThisDevice()) {
-                    ChoiceChip(
-                        label = t["Samsung translator"],
+                    EngineOption(
+                        title = t["Samsung translator"],
+                        subtitle = t["The translator built into your Samsung phone. Falls back to ML Kit for pairs it lacks, and for auto-detect."],
                         icon = Icons.Filled.Translate,
                         selected = ui.settings.translationBackend == TranslationBackend.SYSTEM,
-                        onClick = { onSelectTranslationBackend(TranslationBackend.SYSTEM) },
-                        modifier = Modifier.weight(1f)
+                        badge = t["Offline"],
+                        onClick = { onSelectTranslationBackend(TranslationBackend.SYSTEM) }
                     )
                 }
+                EngineOption(
+                    title = t["LibreTranslate"],
+                    subtitle = t["Your own LibreTranslate server (set its URL below)."],
+                    icon = Icons.Filled.Cloud,
+                    selected = ui.settings.translationBackend == TranslationBackend.LIBRE_TRANSLATE,
+                    onClick = { onSelectTranslationBackend(TranslationBackend.LIBRE_TRANSLATE) }
+                )
             }
 
-            if (ui.settings.translationBackend == TranslationBackend.ML_KIT) {
-                Text(
-                    text = t["Google ML Kit translates fully on this device — no server required. The first time you use a language pair, a ~30 MB model downloads and is then cached offline forever."],
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else if (ui.settings.translationBackend == TranslationBackend.AI) {
-                Text(
-                    text = t["Translates with your cloud AI provider. Your text is sent to it. Set it up in Advanced settings; without a key, ML Kit is used."],
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else if (ui.settings.translationBackend == TranslationBackend.SYSTEM) {
-                Text(
-                    text = t["Uses the translation service built into your Samsung phone. If the phone does not provide it for a language pair, on-device ML Kit is used automatically. Auto-detect always uses ML Kit."],
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
+            if (ui.settings.translationBackend == TranslationBackend.LIBRE_TRANSLATE) {
                 OutlinedTextField(
                     value = translateUrl,
                     onValueChange = onTranslateUrlChange,

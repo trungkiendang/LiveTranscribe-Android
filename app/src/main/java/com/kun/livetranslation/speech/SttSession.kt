@@ -8,5 +8,7 @@ interface SttSession {
     fun feed(pcm: ByteArray, length: Int = pcm.size): SttFeedResult
     /** Flushes buffered audio; returns remaining text if it is available synchronously. */
     fun finish(): String
+    /** Closes the open utterance now and keeps listening; returns its text. No-op for sessions that segment themselves. */
+    fun endUtterance(): String = ""
     fun close()
 }

@@ -47,7 +47,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -81,6 +82,8 @@ class CaptionForegroundService : Service() {
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
+
+    private val finalSignal = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
 
     private var currentAudioSource = AudioSource.MIC
 
@@ -227,7 +230,7 @@ class CaptionForegroundService : Service() {
                 if (settings.translationBackend == TranslationBackend.AI) GEMINI_TRANSLATE_MS else TRANSLATE_DEBOUNCE_MS
             launch(Dispatchers.IO) {
                 translateRequests
-                    .sample(translateCadenceMs)
+                    .conflate()
                     .collect {
                         while (true) {
                             val final = pendingFinalTranslations.poll() ?: break
@@ -238,6 +241,8 @@ class CaptionForegroundService : Service() {
                                 .also { historyOnNextTranslate = false }
                         }
                         if (partial.text.isNotBlank()) translateSnapshot(partial)
+                        // Rate-limit partials, but a finished sentence must not wait for the next tick.
+                        withTimeoutOrNull(translateCadenceMs) { finalSignal.receive() }
                     }
             }
 
@@ -403,6 +408,7 @@ class CaptionForegroundService : Service() {
             bufferedLineId = lineId
             if (isFinal) {
                 pendingFinalTranslations.add(TranslationRequest(text, lineId, true))
+                finalSignal.trySend(Unit)
                 // Finals are retained in the queue; do not translate the same
                 // immutable snapshot again through the mutable partial slot.
                 bufferedText = ""

@@ -66,16 +66,16 @@ class UtteranceSegmenterTest {
     fun longSpeech_isCutAtItsQuietestRecentMoment_notMidWord() {
         val s = UtteranceSegmenter()
         s.feedAll(30, 5)
-        // 9 s of speech with a brief dip at ~6.9 s (a breath) inside the last 1.5 s before the 8 s limit.
+        // 9 s of speech with a brief dip at ~2.4 s (a breath) inside the last 1 s before the 3 s limit.
         val clips = mutableListOf<ByteArray>()
         for (i in 0 until 90) {
-            val amp = if (i == 62) 400 else 4000
+            val amp = if (i == 24) 400 else 4000
             s.feed(chunk(amp), 3200)?.let { clips += it }
         }
         val first = clips.firstOrNull()
         assertNotNull(first)
-        // pre-roll (0.3 s) + speech up to the dip chunk (6.3 s) -> about 6.6 s, not the full 8 s.
-        assertTrue("cut near the dip, got ${seconds(first!!)}", seconds(first) in 6.3..7.0)
+        // pre-roll (0.3 s) + speech up to the dip chunk (2.4 s) -> about 2.7 s, not the full 3 s.
+        assertTrue("cut near the dip, got ${seconds(first!!)}", seconds(first) in 2.5..2.9)
     }
 
     @Test
