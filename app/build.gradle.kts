@@ -156,6 +156,8 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     implementation("com.alphacephei:vosk-android:0.3.75")
+    // Neural voice-activity detection (Silero) for utterance segmentation.
+    implementation("com.github.gkonovalov.android-vad:silero:2.0.10")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // On-device translation (Google Translate models cached offline).

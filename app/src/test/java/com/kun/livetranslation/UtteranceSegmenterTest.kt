@@ -87,4 +87,21 @@ class UtteranceSegmenterTest {
         assertNotNull(s.flush())
         assertNull(s.flush())
     }
+
+    @Test
+    fun loudMusic_isNotSpeech_whenTheDetectorSaysSo() {
+        val s = UtteranceSegmenter(isSpeech = { false })
+        // 5 s of loud audio that the neural VAD rejects (music): nothing is sent.
+        assertTrue(s.feedAll(4000, 50).isEmpty())
+        assertNull(s.flush())
+    }
+
+    @Test
+    fun theDetector_decidesWhereAPhraseStartsAndEnds_evenWhenQuietSpeech() {
+        // The detector flags the chunks with amplitude 300 as speech; plain loudness thresholds would miss them.
+        val s = UtteranceSegmenter(isSpeech = { c -> (c[1].toInt() shl 8 or (c[0].toInt() and 0xFF)) == 300 })
+        s.feedAll(30, 5)
+        val clips = s.feedAll(300, 10) + s.feedAll(30, 8)
+        assertEquals(1, clips.size)
+    }
 }

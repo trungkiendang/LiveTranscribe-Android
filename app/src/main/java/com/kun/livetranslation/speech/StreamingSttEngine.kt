@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 /**
@@ -56,6 +57,7 @@ class StreamingSttEngine(
     private var audioRecord: AudioRecord? = null
     private var captureJob: Job? = null
     private var session: SttSession? = null
+    private var vad: SileroSpeechDetector? = null
 
     @Volatile private var running = false
     @Volatile private var paused = false
@@ -91,6 +93,8 @@ class StreamingSttEngine(
             if (remainder.isNotBlank()) onResult(SpeechResult(remainder, isFinal = true))
         }
         s?.close()
+        if (aiApi == null) vad?.close()
+        vad = null
     }
 
     override fun pause() {
@@ -105,8 +109,10 @@ class StreamingSttEngine(
     }
 
     private suspend fun startInternal() {
+        // Cloud: the segmenter owns the detector. Local: the capture loop uses it to find pauses.
+        vad = withContext(Dispatchers.Default) { SileroSpeechDetector.create(context) }
         val localSession: SttSession? = if (aiApi != null) {
-            CloudSttSession(aiApi, languageHint, scope) { text -> onResult(SpeechResult(text, isFinal = true)) }
+            CloudSttSession(aiApi, languageHint, scope, vad) { text -> onResult(SpeechResult(text, isFinal = true)) }
         } else {
             localSttClient.openSession(languageCode, SAMPLE_RATE)
         }
@@ -190,6 +196,7 @@ class StreamingSttEngine(
         val preRoll = ByteArray(CHUNK_BYTES) // last skipped silent chunk, fed before speech resumes
         var preRollLen = 0
         var silentChunkStreak = 0
+        var energyQuietStreak = 0
         var lastEmittedPartial = ""
         var utteranceChunks = 0 // chunks fed since the last final
         var lastTail = ""
@@ -223,20 +230,25 @@ class StreamingSttEngine(
             }
 
             val avgAbs = averageAbsAmplitude(buffer, read)
-            val isSilent = avgAbs < SILENCE_AVERAGE_ABS_THRESHOLD
+            val energySilent = avgAbs < SILENCE_AVERAGE_ABS_THRESHOLD
+            val localVad = if (aiApi == null) vad else null
+            // Speech vs music/noise by the neural VAD when available, loudness otherwise.
+            val isSilent = if (localVad != null && read >= SileroSpeechDetector.FRAME_BYTES) !localVad.isSpeech(buffer, read) else energySilent
 
-            if (isSilent) {
-                silentChunkStreak += 1
+            silentChunkStreak = if (isSilent) silentChunkStreak + 1 else 0
+            // "Nothing is playing" is about loudness, not speech: music alone must not trigger it.
+            if (energySilent) {
+                energyQuietStreak += 1
                 // For system audio, flag when we've been silent for a long time so the
                 // user knows nothing is actually playing.
                 if (audioSource == AudioSource.SYSTEM &&
                     !sawAnyAudioEver &&
-                    silentChunkStreak >= SILENT_CHUNKS_BEFORE_SYSTEM_HINT
+                    energyQuietStreak >= SILENT_CHUNKS_BEFORE_SYSTEM_HINT
                 ) {
                     onError(NO_CAPTURABLE_AUDIO_MESSAGE)
                 }
             } else {
-                silentChunkStreak = 0
+                energyQuietStreak = 0
                 sawAnyAudioEver = true
                 onError(null)
             }

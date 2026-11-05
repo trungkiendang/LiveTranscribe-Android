@@ -11,6 +11,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Only the Silero VAD wrapper comes from JitPack.
+        maven {
+            url = uri("https://jitpack.io")
+            content { includeGroup("com.github.gkonovalov.android-vad") }
+        }
     }
 }
 
