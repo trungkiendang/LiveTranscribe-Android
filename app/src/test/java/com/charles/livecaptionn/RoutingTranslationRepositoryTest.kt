@@ -21,7 +21,8 @@ class RoutingTranslationRepositoryTest {
         val repo = RoutingTranslationRepository(
             settingsRepository = FakeSettingsRepo(TranslationBackend.ML_KIT),
             mlKit = mlKit,
-            libre = libre
+            libre = libre,
+            system = FakeTranslationRepository("system")
         )
         val result = repo.translate("hello", "en", "vi", autoDetect = false)
         assertEquals("mlkit-translated", result)
@@ -36,12 +37,28 @@ class RoutingTranslationRepositoryTest {
         val repo = RoutingTranslationRepository(
             settingsRepository = FakeSettingsRepo(TranslationBackend.LIBRE_TRANSLATE),
             mlKit = mlKit,
-            libre = libre
+            libre = libre,
+            system = FakeTranslationRepository("system")
         )
         val result = repo.translate("hello", "en", "vi", autoDetect = false)
         assertEquals("libre-translated", result)
         assertEquals(0, mlKit.translateCount)
         assertEquals(1, libre.translateCount)
+    }
+
+    @Test
+    fun translate_systemBackendOnNonSamsungDevice_usesMlKit() = runTest {
+        // Unit tests run on a JVM that is not a Samsung phone: a stale SYSTEM setting must not break captions.
+        val mlKit = FakeTranslationRepository("mlkit-translated")
+        val system = FakeTranslationRepository("system-translated")
+        val repo = RoutingTranslationRepository(
+            settingsRepository = FakeSettingsRepo(TranslationBackend.SYSTEM),
+            mlKit = mlKit,
+            libre = FakeTranslationRepository("libre"),
+            system = system
+        )
+        assertEquals("mlkit-translated", repo.translate("hello", "en", "vi", autoDetect = false))
+        assertEquals(0, system.translateCount)
     }
 
     @Test
@@ -51,7 +68,8 @@ class RoutingTranslationRepositoryTest {
         val repo = RoutingTranslationRepository(
             settingsRepository = FakeSettingsRepo(TranslationBackend.ML_KIT),
             mlKit = mlKit,
-            libre = libre
+            libre = libre,
+            system = FakeTranslationRepository("system")
         )
         repo.translate("a", "en", "vi", autoDetect = false)
         repo.translate("b", "en", "vi", autoDetect = false)
@@ -67,7 +85,8 @@ class RoutingTranslationRepositoryTest {
         val repo = RoutingTranslationRepository(
             settingsRepository = FakeSettingsRepo(TranslationBackend.ML_KIT),
             mlKit = mlKit,
-            libre = libre
+            libre = libre,
+            system = FakeTranslationRepository("system")
         )
         repo.prewarm("en", "vi")
         assertEquals(1, mlKit.prewarmCount)

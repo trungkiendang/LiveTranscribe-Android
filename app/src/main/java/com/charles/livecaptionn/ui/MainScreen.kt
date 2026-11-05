@@ -100,6 +100,7 @@ import com.charles.livecaptionn.speech.RecognitionStatus
 import com.charles.livecaptionn.speech.ModelQuality
 import com.charles.livecaptionn.speech.VoskModelInfo
 import com.charles.livecaptionn.translation.MlKitLanguages
+import com.charles.livecaptionn.translation.SystemTranslationRepository
 import com.charles.livecaptionn.overlay.OverlayFontCatalog
 import com.charles.livecaptionn.overlay.OverlayThemeCatalog
 import com.charles.livecaptionn.ui.l10n.LocalUiStrings
@@ -1254,11 +1255,27 @@ private fun ServerCard(
                     onClick = { onSelectTranslationBackend(TranslationBackend.LIBRE_TRANSLATE) },
                     modifier = Modifier.weight(1f)
                 )
+                // Only offered on Samsung phones, where One UI may provide a system translator.
+                if (SystemTranslationRepository.isOfferedOnThisDevice()) {
+                    ChoiceChip(
+                        label = t["Samsung translator"],
+                        icon = Icons.Filled.Translate,
+                        selected = ui.settings.translationBackend == TranslationBackend.SYSTEM,
+                        onClick = { onSelectTranslationBackend(TranslationBackend.SYSTEM) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             if (ui.settings.translationBackend == TranslationBackend.ML_KIT) {
                 Text(
                     text = t["Google ML Kit translates fully on this device — no server required. The first time you use a language pair, a ~30 MB model downloads and is then cached offline forever."],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (ui.settings.translationBackend == TranslationBackend.SYSTEM) {
+                Text(
+                    text = t["Uses the translation service built into your Samsung phone. If the phone does not provide it for a language pair, on-device ML Kit is used automatically. Auto-detect always uses ML Kit."],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

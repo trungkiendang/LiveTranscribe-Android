@@ -74,7 +74,7 @@ data class MainUiState(
         get() = translationLanguages()
 
     private fun translationLanguages(): List<Language> = when (settings.translationBackend) {
-        TranslationBackend.ML_KIT -> MlKitLanguages.LIST
+        TranslationBackend.ML_KIT, TranslationBackend.SYSTEM -> MlKitLanguages.LIST
         TranslationBackend.LIBRE_TRANSLATE ->
             if (libreLanguages.isNotEmpty()) libreLanguages else Language.FALLBACK
     }

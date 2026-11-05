@@ -14,6 +14,7 @@ import com.charles.livecaptionn.speech.VoskModelRegistry
 import com.charles.livecaptionn.translation.LanguageCatalogStore
 import com.charles.livecaptionn.translation.LibreTranslateRepository
 import com.charles.livecaptionn.translation.MlKitTranslationRepository
+import com.charles.livecaptionn.translation.SystemTranslationRepository
 import com.charles.livecaptionn.translation.MockTranslationRepository
 import com.charles.livecaptionn.translation.RoutingTranslationRepository
 import com.charles.livecaptionn.translation.TranslationRepository
@@ -32,10 +33,14 @@ class AppContainer(context: Context) {
     val runtimeStore: CaptionRuntimeStore = CaptionRuntimeStore()
     private val libreTranslationRepository: TranslationRepository = LibreTranslateRepository(settingsRepository)
     private val mlKitTranslationRepository: TranslationRepository = MlKitTranslationRepository()
+    // Falls back to ML Kit for anything the system service cannot translate.
+    private val systemTranslationRepository: TranslationRepository =
+        SystemTranslationRepository(context.applicationContext, fallback = mlKitTranslationRepository)
     val translationRepository: TranslationRepository = RoutingTranslationRepository(
         settingsRepository = settingsRepository,
         mlKit = mlKitTranslationRepository,
-        libre = libreTranslationRepository
+        libre = libreTranslationRepository,
+        system = systemTranslationRepository
     )
     val mockTranslationRepository: TranslationRepository = MockTranslationRepository()
     val transcriptHistory: TranscriptHistoryStore = TranscriptHistoryStore(context.applicationContext)
