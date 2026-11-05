@@ -114,7 +114,7 @@ fun FeatureToolsCard(
                 Text(t["Glossary and phrase replacements"], Modifier.weight(1f))
                 TextButton(onClick = { showGlossaryDialog = true }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
-                    Text(t["Add Pro"])
+                    Text(t["Add"])
                 }
             }
             glossaryItems.forEach { entry ->

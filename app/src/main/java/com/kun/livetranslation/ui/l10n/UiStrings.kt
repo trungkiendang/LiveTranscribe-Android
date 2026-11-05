@@ -116,14 +116,13 @@ object UiStringCatalog {
         "Close",
         "Choose language",
         "Search",
-        "Requires Pro",
         "No languages match \"%s\".",
 
         // Vosk model management
         "On-device speech models",
         "Vosk models run fully offline on this phone. Downloading a model is a one-time step; uninstall any time to free storage. For the strongest transcription, pick the LARGE server-grade model for the languages you use most.",
         "Installed",
-        "Large · server-grade accuracy (Pro)",
+        "Large · server-grade accuracy",
         "Full Vosk server models with the lowest error rates. Each one is 80 MB to 2 GB but runs entirely on-device after the one-time download. This is the strongest transcription option for every language.",
         "Small · fast & light",
         "Compact ~40 MB models for quick installs or low-storage phones. Accuracy is noticeably lower than the large variants.",
@@ -133,9 +132,6 @@ object UiStringCatalog {
         "Get",
         "LARGE",
         "bundled",
-        "Pro",
-        "Pro feature",
-        "Upgrade to Pro to unlock this feature. The upgrade removes ads and adds high-accuracy models, more languages, profiles, and advanced caption tools.",
         "Not now",
         "Opening Google Play…",
         "Download failed (HTTP 404): this model is no longer published",
@@ -150,8 +146,9 @@ object UiStringCatalog {
         "Text size: %dsp",
         "Opacity: %d%%",
         "Show original text",
-        "Overlay theme (Pro)",
-        "Overlay font (Pro)",
+        "Add",
+        "Overlay theme",
+        "Overlay font",
 
         // Server / translation engine
         "Translation engine",
@@ -191,11 +188,8 @@ object UiStringCatalog {
 
         // Premium
         "Upgrade",
-        "Ad-Free removes all ads. Pro unlocks larger on-device speech models, more translation languages, and extra overlay themes.",
         "Go Ad-Free",
         "Ad-Free active",
-        "Go Pro",
-        "Pro active",
         "Manage subscription",
         "Email used at checkout",
         "Restore purchase",

@@ -50,13 +50,17 @@ class OverlayController(
     private var pauseButton: ImageButton? = null
     private var minButton: ImageButton? = null
     private var closeButton: ImageButton? = null
+    private var settingsButton: ImageButton? = null
+    private var settingsPanel: ScrollView? = null
+    private var settingsOpen = false
+    private var lastUi: OverlayUiState? = null
     private var params: WindowManager.LayoutParams? = null
     private var header: LinearLayout? = null
     private var lastDetail: String? = null
     private val handler = Handler(Looper.getMainLooper())
     private var minimized = false
     // Minimized view is just the header, so it must stay visible.
-    private val hideControlsTask = Runnable { if (!minimized) header?.visibility = View.GONE }
+    private val hideControlsTask = Runnable { if (!minimized && !settingsOpen) header?.visibility = View.GONE }
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val handleHitPx get() = dp(44)
 
@@ -146,7 +150,10 @@ class OverlayController(
         minButton = makeButton(android.R.drawable.arrow_down_float, uiStrings()["Minimize overlay"]) { onToggleMinimize() }
         closeButton = makeButton(android.R.drawable.ic_menu_close_clear_cancel, uiStrings()["Close overlay"]) { onClose() }
 
+        settingsButton = makeButton(android.R.drawable.ic_menu_preferences, uiStrings()["Overlay settings"]) { toggleSettings() }
+
         header.addView(statusText)
+        header.addView(settingsButton)
         header.addView(pauseButton)
         header.addView(minButton)
         header.addView(closeButton)
@@ -228,6 +235,12 @@ class OverlayController(
         container.addView(origContainer)
         container.addView(body)
 
+        settingsPanel = ScrollView(context).apply {
+            visibility = View.GONE
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        }
+        container.addView(settingsPanel)
+
         frame.addView(container)
 
         // Resize handle at bottom-right corner: small visible grip, large touch area.
@@ -260,6 +273,7 @@ class OverlayController(
 
     fun update(ui: OverlayUiState) {
         val frame = root ?: return
+        lastUi = ui
         val container = frame.getChildAt(0) as? LinearLayout ?: return
         val theme = OverlayThemeCatalog.find(ui.themeId)
         val font = OverlayFontCatalog.find(ui.fontId)
@@ -317,6 +331,10 @@ class OverlayController(
             if (ui.status == RecognitionStatus.PAUSED) android.R.drawable.ic_media_play
             else android.R.drawable.ic_media_pause
         )
+        if (settingsOpen) { // the panel replaces the captions while it is open
+            body?.visibility = View.GONE
+            originalContainer?.visibility = View.GONE
+        }
         // Auto-scroll to bottom on new text
         if (textChanged) {
             body?.post {
@@ -353,6 +371,98 @@ class OverlayController(
         pauseButton = null
         minButton = null
         closeButton = null
+        settingsButton = null
+        settingsPanel = null
+        settingsOpen = false
+        lastUi = null
+    }
+
+    // ── Settings panel ──
+
+    private fun toggleSettings() {
+        val panel = settingsPanel ?: return
+        settingsOpen = !settingsOpen
+        if (settingsOpen) {
+            panel.removeAllViews()
+            panel.addView(buildSettingsContent())
+            panel.visibility = View.VISIBLE
+            body?.visibility = View.GONE
+            originalContainer?.visibility = View.GONE
+            handler.removeCallbacks(hideControlsTask)
+        } else {
+            panel.visibility = View.GONE
+            lastUi?.let { update(it) }
+            showControls()
+        }
+    }
+
+    private fun saveSetting(change: (CaptionSettings) -> CaptionSettings) {
+        scope.launch { settingsRepository.update(change) }
+    }
+
+    private fun buildSettingsContent(): View {
+        val s = uiStrings()
+        val ui = lastUi
+        fun label(text: String) = TextView(context).apply {
+            this.text = text
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            setPadding(0, dp(6), 0, 0)
+        }
+        fun slider(min: Int, max: Int, value: Int, onChange: (Int) -> Unit) = android.widget.SeekBar(context).apply {
+            this.max = max - min
+            progress = (value - min).coerceIn(0, max - min)
+            // Without this the caption box would start moving while the thumb is dragged.
+            setOnTouchListener { v, _ -> v.parent.requestDisallowInterceptTouchEvent(true); false }
+            setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: android.widget.SeekBar, p: Int, fromUser: Boolean) { if (fromUser) onChange(min + p) }
+                override fun onStartTrackingTouch(sb: android.widget.SeekBar) {}
+                override fun onStopTrackingTouch(sb: android.widget.SeekBar) {}
+            })
+        }
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+            addView(label(s["Text size"]))
+            addView(slider(12, 40, (ui?.textSizeSp ?: 20f).roundToInt()) { v -> saveSetting { it.copy(textSizeSp = v.toFloat()) } })
+            addView(label(s["Opacity"]))
+            addView(slider(50, 100, ((ui?.opacity ?: 0.65f) * 100).roundToInt()) { v -> saveSetting { it.copy(overlayOpacity = v / 100f) } })
+            addView(android.widget.Switch(context).apply {
+                text = s["Show original text"]
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                isChecked = ui?.showOriginal ?: true
+                setPadding(0, dp(8), 0, dp(4))
+                setOnCheckedChangeListener { _, on -> saveSetting { it.copy(showOriginal = on) } }
+            })
+            addView(label(s["Theme"]))
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                val current = ui?.themeId ?: OverlayThemeCatalog.FREE_THEME_ID
+                OverlayThemeCatalog.THEMES.forEach { th ->
+                    addView(TextView(context).apply {
+                        text = th.label
+                        textSize = 11f
+                        maxLines = 1
+                        gravity = Gravity.CENTER
+                        setTextColor(th.textRgb)
+                        setPadding(dp(8), dp(6), dp(8), dp(6))
+                        background = GradientDrawable().apply {
+                            cornerRadius = dp(8).toFloat()
+                            setColor(th.backgroundRgb or 0xFF000000.toInt())
+                            setStroke(dp(if (th.id == current) 2 else 1), if (th.id == current) Color.WHITE else Color.GRAY)
+                        }
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(dp(2), dp(4), dp(2), 0) }
+                        setOnClickListener {
+                            saveSetting { it.copy(overlayThemeId = th.id) }
+                            // Rebuild so the selection ring follows the tap.
+                            lastUi = lastUi?.copy(themeId = th.id)
+                            settingsPanel?.let { p -> p.removeAllViews(); p.addView(buildSettingsContent()) }
+                        }
+                    })
+                }
+            })
+        }
     }
 
     // ── Helpers ──

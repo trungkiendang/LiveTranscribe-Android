@@ -65,7 +65,7 @@ object VoskModelCatalog {
         // No Indonesian entry: alphacephei.com publishes no Vosk model for
         // Indonesian (vosk-model-small-id-0.22.zip answers 404), so listing one
         // only produced a "Get" button that could never work. Indonesian is
-        // still available as a Pro translation language via ML Kit.
+        // still available as a translation language via ML Kit.
 
         // ── Medium / fallthrough (no small variant available) ────────────
         // 333 MB — no small variant exists; listed separately so users

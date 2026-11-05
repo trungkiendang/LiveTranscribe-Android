@@ -25,7 +25,7 @@ data class CaptionSettings(
     val sttBaseUrl: String = DEFAULT_STT_URL,
     val overlayWidthDp: Int = DEFAULT_OVERLAY_WIDTH_DP,
     val overlayHeightDp: Int = DEFAULT_OVERLAY_HEIGHT_DP,
-    /** Pro perk. Defaults render identically to the app's original look. */
+    /** Overlay look. Defaults render identically to the app's original look. */
     val overlayThemeId: String = "default",
     val overlayFontId: String = "default",
     /** Interface (UI) language, defaulting to English until the user opts in
