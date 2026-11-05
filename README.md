@@ -6,10 +6,11 @@
 
 [![Build & Release](https://github.com/trungkiendang/LiveTranscribe-Android/actions/workflows/build.yml/badge.svg)](https://github.com/trungkiendang/LiveTranscribe-Android/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/trungkiendang/LiveTranscribe-Android?color=8b5cf6)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest)
+[![Download](https://img.shields.io/badge/download-LiveCaptionN.apk-8b5cf6)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk)
 [![License](https://img.shields.io/github/license/trungkiendang/LiveTranscribe-Android?color=6366f1)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%2010%2B-1a1330)](#requirements)
 
-### [Website](https://trungkiendang.github.io/LiveTranscribe-Android/) · [Tutorial](https://trungkiendang.github.io/LiveTranscribe-Android/tutorial.html) · [Google Play](https://play.google.com/store/apps/details?id=com.charles.livecaptionn) · [Download APK](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest) · [Report an issue](https://github.com/trungkiendang/LiveTranscribe-Android/issues)
+### [Website](https://trungkiendang.github.io/LiveTranscribe-Android/) · [Tutorial](https://trungkiendang.github.io/LiveTranscribe-Android/tutorial.html) · [Download APK](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk) · [Report an issue](https://github.com/trungkiendang/LiveTranscribe-Android/issues)
 
 </div>
 
@@ -85,7 +86,7 @@ When you select **System Audio → Local Vosk** the source-language picker colla
 
 ## Quick install
 
-1. Download the latest APK from the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest).
+1. Download the latest APK: [**LiveCaptionN.apk** (v1.0.1)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk) — all versions are on the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases).
 2. On your Android device, enable **Install unknown apps** for your browser / file manager if prompted.
 3. Open the APK and install.
 4. Launch LiveCaptionN and grant **Microphone**, **Display over other apps**, and **Notifications** permissions. (Notifications are used for update alerts only — no telemetry.)

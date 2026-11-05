@@ -51,6 +51,9 @@ jobs:
       - name: Name the APK
         run: cp app/build/outputs/apk/github/debug/app-github-debug.apk "live-caption-${{ github.run_number }}.apk"
 
+      - name: Stable release asset name
+        run: cp "live-caption-${{ github.run_number }}.apk" LiveCaptionN.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: live-caption-apk
@@ -60,5 +63,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: live-caption-${{ github.run_number }}.apk
+          files: LiveCaptionN.apk
           generate_release_notes: true
