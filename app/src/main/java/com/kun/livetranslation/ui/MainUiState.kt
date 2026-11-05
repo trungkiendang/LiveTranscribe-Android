@@ -23,6 +23,7 @@ data class MainUiState(
     /** Last failed download per model name, shown in the model sheet. */
     val voskDownloadErrors: Map<String, String> = emptyMap(),
     val availableUpdate: UpdateInfo? = null,
+    val updateProgress: com.kun.livetranslation.update.UpdateProgress? = null,
     /** True when the running APK was installed from the Google Play Store. Used
      *  to warn Play Store users before they grab a (potentially unstable)
      *  GitHub release that would break Play auto-update. */

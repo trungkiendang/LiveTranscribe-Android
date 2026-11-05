@@ -127,6 +127,11 @@ class MainViewModel(
                     if (info != null) container.updateNotifier.notifyIfNew(info)
                 }
             }
+            viewModelScope.launch {
+                com.kun.livetranslation.update.UpdateInstaller.progress(getApplication()).collectLatest { p ->
+                    mutableState.value = mutableState.value.copy(updateProgress = p)
+                }
+            }
             // One-shot check on launch so users see an update even before the periodic worker runs.
             viewModelScope.launch { container.updateChecker.check() }
         }
@@ -138,6 +143,24 @@ class MainViewModel(
 
     /** Manual "Check for updates" from Settings. */
     suspend fun checkForUpdates(): com.kun.livetranslation.update.UpdateChecker.Result = container.updateChecker.checkNow()
+
+    /**
+     * Downloads the update in the background and installs it. The first time, Android needs
+     * "Install unknown apps" allowed for LiveN, so we send the user to that setting instead.
+     */
+    fun startUpdate(context: Context, info: UpdateInfo) {
+        if (info.apkDownloadUrl == null) return openUpdateUrl(context, info)
+        if (!com.kun.livetranslation.update.UpdateInstaller.canInstall(context)) {
+            android.widget.Toast.makeText(
+                context, "Allow LiveN to install apps, then tap Update again.", android.widget.Toast.LENGTH_LONG
+            ).show()
+            com.kun.livetranslation.update.UpdateInstaller.openInstallPermissionSettings(context)
+            return
+        }
+        com.kun.livetranslation.update.UpdateInstaller.start(context, info)
+    }
+
+    fun cancelUpdate(context: Context) = com.kun.livetranslation.update.UpdateInstaller.cancel(context)
 
     fun openUpdateUrl(context: Context, info: UpdateInfo) {
         val target = info.apkDownloadUrl ?: info.releasePageUrl
