@@ -4,9 +4,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
-    id("com.google.firebase.firebase-perf")
 }
 
 // Load local.properties for private server URLs (not committed to git)
@@ -166,12 +163,6 @@ dependencies {
     // On-device language identification, used for "auto-detect source".
     implementation("com.google.mlkit:language-id:17.0.6")
 
-    // Firebase BoM pins compatible versions of every Firebase SDK below.
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
-    implementation("com.google.firebase:firebase-analytics-ktx")
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-perf-ktx")
-    // firebase-messaging and firebase-config were removed — not used.
 
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.android.material:material:1.11.0")

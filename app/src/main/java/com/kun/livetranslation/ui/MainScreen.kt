@@ -113,6 +113,7 @@ import com.kun.livetranslation.ui.l10n.LocalUiStrings
 import com.kun.livetranslation.ui.l10n.UiLanguagePickerDialog
 import com.kun.livetranslation.ui.l10n.UiLocalizationRepository.UiLocalizationStage
 import com.kun.livetranslation.update.UpdateInfo
+import com.kun.livetranslation.update.UpdateProgress
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -197,7 +198,9 @@ fun MainScreen(
                 UpdateAvailableBanner(
                     info = info,
                     fromPlayStore = ui.installedFromPlayStore,
-                    onDownload = { viewModel.openUpdateUrl(updateCtx, info) },
+                    progress = ui.updateProgress,
+                    onDownload = { viewModel.startUpdate(updateCtx, info) },
+                    onCancel = { viewModel.cancelUpdate(updateCtx) },
                     onDismiss = { viewModel.dismissUpdate() }
                 )
             }
@@ -1333,7 +1336,9 @@ private fun ServerCard(
 private fun UpdateAvailableBanner(
     info: UpdateInfo,
     fromPlayStore: Boolean,
+    progress: UpdateProgress?,
     onDownload: () -> Unit,
+    onCancel: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val t = LocalUiStrings.current
@@ -1401,22 +1406,45 @@ private fun UpdateAvailableBanner(
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onDownload,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (info.apkDownloadUrl != null) t["Download APK"] else t["View release"])
+            UpdateProgressRow(progress, onCancel)
+            if (progress == null || progress.state == UpdateProgress.State.FAILED) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onDownload,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (info.apkDownloadUrl != null) t["Update now"] else t["View release"])
+                    }
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(10.dp)
+                    ) { Text(t["Later"]) }
                 }
-                OutlinedButton(
-                    onClick = onDismiss,
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text(t["Later"]) }
             }
         }
+    }
+}
+
+/** Progress of an in-app update: percent while downloading, then "confirm the install". */
+@Composable
+private fun UpdateProgressRow(progress: UpdateProgress?, onCancel: () -> Unit) {
+    val t = LocalUiStrings.current
+    when (progress?.state) {
+        UpdateProgress.State.DOWNLOADING -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LinearProgressIndicator(progress = { progress.percent / 100f }, modifier = Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${t["Downloading"]} ${progress.percent}% · ${t["you can leave the app"]}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                TextButton(onClick = onCancel) { Text(t["Cancel"]) }
+            }
+        }
+        UpdateProgress.State.INSTALLING ->
+            Text(t["Confirm the install in the Android dialog or notification."], style = MaterialTheme.typography.bodySmall)
+        UpdateProgress.State.FAILED ->
+            Text("✗ ${progress.message ?: t["Update failed"]}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        null -> {}
     }
 }
 
@@ -1949,11 +1977,14 @@ private fun UpdatesCard(ui: MainUiState, viewModel: MainViewModel) {
                     modifier = Modifier.weight(1f)
                 ) { Text(if (checking) t["Checking…"] else t["Check for updates"]) }
                 (result as? com.kun.livetranslation.update.UpdateChecker.Result.Available)?.let { r ->
-                    Button(onClick = { viewModel.openUpdateUrl(context, r.info) }, modifier = Modifier.weight(1f)) {
-                        Text(t["Download APK"])
+                    if (ui.updateProgress == null || ui.updateProgress.state == UpdateProgress.State.FAILED) {
+                        Button(onClick = { viewModel.startUpdate(context, r.info) }, modifier = Modifier.weight(1f)) {
+                            Text(t["Update now"])
+                        }
                     }
                 }
             }
+            UpdateProgressRow(ui.updateProgress) { viewModel.cancelUpdate(context) }
         }
     }
 }

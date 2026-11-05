@@ -23,32 +23,31 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # The Google Services plugin needs a syntactically valid file to build.
-      # Firebase is not used in this fork, so a placeholder is enough.
-      - name: Placeholder google-services.json
-        run: |
-          cat > app/google-services.json <<'JSON'
-          {
-            "project_info": { "project_number": "000000000000", "project_id": "placeholder", "storage_bucket": "placeholder.appspot.com" },
-            "client": [{
-              "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "com.kun.livetranslation" } },
-              "oauth_client": [],
-              "api_key": [ { "current_key": "placeholder" } ],
-              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-            }],
-            "configuration_version": "1"
-          }
-          JSON
-
       - name: Unit tests
         run: sh gradlew testGithubDebugUnitTest
 
-      # Debug-signed APK: installable directly, no keystore secrets needed.
+      # With the signing secrets set, build a release APK signed with the project's own key. Updates
+      # only install over an app signed with the SAME key, so in-app updates need this. Without the
+      # secrets (forks) it falls back to a debug-signed APK, which cannot update an earlier build.
       - name: Build APK
-        run: sh gradlew assembleGithubDebug
-
-      - name: Name the APK
-        run: cp app/build/outputs/apk/github/debug/app-github-debug.apk "liven-${{ github.run_number }}.apk"
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > liven-release.jks
+            printf 'storeFile=liven-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+            sh gradlew assembleGithubRelease
+            cp app/build/outputs/apk/github/release/app-github-release.apk "liven-${{ github.run_number }}.apk"
+            rm -f liven-release.jks keystore.properties
+          else
+            echo "::warning::Signing secrets are not set: building a debug-signed APK."
+            sh gradlew assembleGithubDebug
+            cp app/build/outputs/apk/github/debug/app-github-debug.apk "liven-${{ github.run_number }}.apk"
+          fi
 
       - name: Stable release asset name
         run: cp "liven-${{ github.run_number }}.apk" LiveN.apk
