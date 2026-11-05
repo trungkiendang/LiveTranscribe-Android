@@ -57,7 +57,6 @@ Both stages of the pipeline can run **fully on-device**: streaming Vosk handles 
 - **Pro glossary** — define custom phrases and replacements for names, terminology, and recurring translations.
 - **Tunable overlay** — text size, opacity, width/height, "show original" toggle (dual-line original + translated display), minimized state, and remembered screen position.
 - **Private by default** — speech processing and translation both run against endpoints you configure. No accounts, no mandatory telemetry (Firebase Analytics/Crashlytics only in release builds, disabled in debug).
-- **Optional Ad-Free & Pro subscriptions** — the core captioning experience remains free with ads. **Ad-Free** removes the banner/app-open ads. **Pro** includes Ad-Free and unlocks larger server-grade Vosk models, more ML Kit translation languages, extra overlay themes/fonts, reusable Pro presets, and glossary replacements. Billing is Google Play Billing on the Play Store build and Stripe (via a Cloudflare Worker) on the self-updating GitHub build.
 
 ## Translating different languages
 

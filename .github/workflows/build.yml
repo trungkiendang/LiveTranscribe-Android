@@ -41,14 +41,6 @@ jobs:
         # Same-repo PRs get repository secrets, so build them like pushes.
         if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
         env:
-          ADS_ENABLED: ${{ secrets.ADS_ENABLED }}
-          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
-          ADMOB_APP_OPEN_ID_DEBUG: ${{ secrets.ADMOB_APP_OPEN_ID_DEBUG }}
-          ADMOB_APP_OPEN_ID_RELEASE: ${{ secrets.ADMOB_APP_OPEN_ID_RELEASE }}
-          ADMOB_BANNER_ID_DEBUG: ${{ secrets.ADMOB_BANNER_ID_DEBUG }}
-          ADMOB_BANNER_ID_RELEASE: ${{ secrets.ADMOB_BANNER_ID_RELEASE }}
-          ADMOB_NATIVE_ID_DEBUG: ${{ secrets.ADMOB_NATIVE_ID_DEBUG }}
-          ADMOB_NATIVE_ID_RELEASE: ${{ secrets.ADMOB_NATIVE_ID_RELEASE }}
           GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           ANDROID_KEYSTORE_FILE: ${{ secrets.ANDROID_KEYSTORE_FILE }}
@@ -57,7 +49,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           missing=0
-          for key in ADS_ENABLED ADMOB_APP_ID ADMOB_APP_OPEN_ID_DEBUG ADMOB_APP_OPEN_ID_RELEASE ADMOB_BANNER_ID_DEBUG ADMOB_BANNER_ID_RELEASE ADMOB_NATIVE_ID_DEBUG ADMOB_NATIVE_ID_RELEASE GOOGLE_SERVICES_JSON_B64 ANDROID_KEYSTORE_B64 ANDROID_KEYSTORE_FILE ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+          for key in GOOGLE_SERVICES_JSON_B64 ANDROID_KEYSTORE_B64 ANDROID_KEYSTORE_FILE ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             if [[ -z "${!key}" ]]; then
               echo "::error::$key is not set in GitHub repository secrets."
               missing=1
@@ -120,35 +112,13 @@ jobs:
           keyPassword=$ANDROID_KEY_PASSWORD
           EOF
 
-      - name: Generate CI local.properties (ads enabled)
+      - name: Generate CI local.properties
         if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
         env:
-          ADS_ENABLED: ${{ secrets.ADS_ENABLED }}
-          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
-          ADMOB_APP_OPEN_ID_DEBUG: ${{ secrets.ADMOB_APP_OPEN_ID_DEBUG }}
-          ADMOB_APP_OPEN_ID_RELEASE: ${{ secrets.ADMOB_APP_OPEN_ID_RELEASE }}
-          ADMOB_BANNER_ID_DEBUG: ${{ secrets.ADMOB_BANNER_ID_DEBUG }}
-          ADMOB_BANNER_ID_RELEASE: ${{ secrets.ADMOB_BANNER_ID_RELEASE }}
-          ADMOB_NATIVE_ID_DEBUG: ${{ secrets.ADMOB_NATIVE_ID_DEBUG }}
-          ADMOB_NATIVE_ID_RELEASE: ${{ secrets.ADMOB_NATIVE_ID_RELEASE }}
-          PREMIUM_WORKER_URL: ${{ secrets.PREMIUM_WORKER_URL }}
-          STRIPE_PRICE_AD_FREE: ${{ secrets.STRIPE_PRICE_AD_FREE }}
-          STRIPE_PRICE_PRO: ${{ secrets.STRIPE_PRICE_PRO }}
         run: |
           cat > local.properties <<EOF
           translate.url=http://localhost:3006
           stt.url=http://localhost:9000/asr?output=json
-          ads.enabled=${ADS_ENABLED:-true}
-          ads.admob.app.id=$ADMOB_APP_ID
-          ads.admob.app.open.id.debug=$ADMOB_APP_OPEN_ID_DEBUG
-          ads.admob.app.open.id.release=$ADMOB_APP_OPEN_ID_RELEASE
-          ads.admob.banner.id.debug=$ADMOB_BANNER_ID_DEBUG
-          ads.admob.banner.id.release=$ADMOB_BANNER_ID_RELEASE
-          ads.admob.native.id.debug=$ADMOB_NATIVE_ID_DEBUG
-          ads.admob.native.id.release=$ADMOB_NATIVE_ID_RELEASE
-          premium.worker.url=${PREMIUM_WORKER_URL:-}
-          premium.stripe.price.ad_free=${STRIPE_PRICE_AD_FREE:-}
-          premium.stripe.price.pro=${STRIPE_PRICE_PRO:-}
           EOF
 
       - name: Run unit tests

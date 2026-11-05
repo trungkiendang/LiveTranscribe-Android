@@ -233,15 +233,6 @@ fun MainScreen(
                 }
             val permissionReady = ui.overlayPermissionGranted &&
                 (ui.settings.audioSource == AudioSource.SYSTEM || ui.micPermissionGranted)
-            // A Pro-only ML Kit language can stay selected after Pro lapses (or after a
-            // restore). Starting then used to fail inside the service with the reason
-            // hidden, so the Start button looked dead. Open the upgrade flow instead.
-            val startNeedsPro = com.charles.livecaptionn.translation.ProStartGate.requiresPro(
-                backend = ui.settings.translationBackend,
-                sourceLanguageCode = ui.settings.sourceLanguageCode,
-                targetLanguageCode = ui.settings.targetLanguageCode,
-                hasPro = true
-            )
             CaptionControlCard(
                 ui,
                 onStart = onStart,

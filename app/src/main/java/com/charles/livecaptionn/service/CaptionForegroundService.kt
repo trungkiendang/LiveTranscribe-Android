@@ -188,16 +188,6 @@ class CaptionForegroundService : Service() {
             val sttLanguageCode = settings.sourceLanguageCode.ifBlank { "en" }
             val localeForSpeechRec = LocaleMap.bcp47(sttLanguageCode)
 
-            if (com.charles.livecaptionn.translation.ProStartGate.requiresPro(
-                    backend = settings.translationBackend,
-                    sourceLanguageCode = settings.sourceLanguageCode,
-                    targetLanguageCode = settings.targetLanguageCode,
-                    hasPro = true
-                )
-            ) {
-                failAndStop("This ML Kit language requires Pro. Choose a free language or upgrade.")
-                return@launch
-            }
             if (settings.sttBackend == SttBackend.LOCAL_VOSK) {
                 val model = app.container.voskRegistry.installedModelFor(sttLanguageCode)
                 if (model == null) {

@@ -52,24 +52,8 @@ jobs:
 
       - name: Configure build properties
         env:
-          ADS_ENABLED: ${{ secrets.ADS_ENABLED }}
-          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
-          ADMOB_APP_OPEN_ID_DEBUG: ${{ secrets.ADMOB_APP_OPEN_ID_DEBUG }}
-          ADMOB_APP_OPEN_ID_RELEASE: ${{ secrets.ADMOB_APP_OPEN_ID_RELEASE }}
-          ADMOB_BANNER_ID_DEBUG: ${{ secrets.ADMOB_BANNER_ID_DEBUG }}
-          ADMOB_BANNER_ID_RELEASE: ${{ secrets.ADMOB_BANNER_ID_RELEASE }}
-          ADMOB_NATIVE_ID_DEBUG: ${{ secrets.ADMOB_NATIVE_ID_DEBUG }}
-          ADMOB_NATIVE_ID_RELEASE: ${{ secrets.ADMOB_NATIVE_ID_RELEASE }}
         run: |
           cat > local.properties <<EOF
-          ads.enabled=${ADS_ENABLED:-true}
-          ads.admob.app.id=$ADMOB_APP_ID
-          ads.admob.app.open.id.debug=$ADMOB_APP_OPEN_ID_DEBUG
-          ads.admob.app.open.id.release=$ADMOB_APP_OPEN_ID_RELEASE
-          ads.admob.banner.id.debug=$ADMOB_BANNER_ID_DEBUG
-          ads.admob.banner.id.release=$ADMOB_BANNER_ID_RELEASE
-          ads.admob.native.id.debug=$ADMOB_NATIVE_ID_DEBUG
-          ads.admob.native.id.release=$ADMOB_NATIVE_ID_RELEASE
           EOF
 
       - name: Test and build Play bundle
