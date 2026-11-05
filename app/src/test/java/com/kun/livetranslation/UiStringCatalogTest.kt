@@ -11,7 +11,7 @@ class UiStringCatalogTest {
     @Test
     fun appName_isIncludedInCatalog() {
         assertTrue(UiStringCatalog.ALL.contains(UiStringCatalog.appName))
-        assertEquals("Live CaptionN", UiStringCatalog.appName)
+        assertEquals("LiveN", UiStringCatalog.appName)
     }
 
     @Test

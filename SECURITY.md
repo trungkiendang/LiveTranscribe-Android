@@ -25,7 +25,7 @@ You will receive a response within 72 hours acknowledging the report. If the iss
 
 The following are in scope for security reports:
 
-- Vulnerabilities in the LiveCaptionN Android application code
+- Vulnerabilities in the LiveN Android application code
 - Issues with how audio, transcripts, or settings are stored or transmitted
 - Permission escalation or unintended data exposure
 - Dependencies with known CVEs that affect this project
@@ -39,7 +39,7 @@ The following are **out of scope**:
 
 ## Security Design
 
-LiveCaptionN is designed with privacy in mind:
+LiveN is designed with privacy in mind:
 
 - **No accounts, no telemetry, no analytics** — the app phones home only to check for updates via the public GitHub API
 - **On-device by default** — speech recognition (Vosk) and translation (ML Kit) both run locally

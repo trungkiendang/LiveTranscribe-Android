@@ -6,7 +6,7 @@ package com.kun.livetranslation.update
 data class UpdateInfo(
     /** Tag name as published on GitHub, e.g. "v1.0.42". */
     val tagName: String,
-    /** User-friendly release title, e.g. "LiveCaptionN v1.0.42". */
+    /** User-friendly release title, e.g. "LiveN v1.0.42". */
     val releaseName: String,
     /** Build number parsed from the tag (`42` from `v1.0.42`). Compared to local versionCode. */
     val buildNumber: Int,

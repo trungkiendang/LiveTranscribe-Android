@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-LiveCaptionN is a single-module Android project. The root Gradle files (`settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`) configure the build, and the Android app lives in `app/`. Production Kotlin code is under `app/src/main/java/com/kun/livetranslation/`, grouped by role:
+LiveN is a single-module Android project. The root Gradle files (`settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`) configure the build, and the Android app lives in `app/`. Production Kotlin code is under `app/src/main/java/com/kun/livetranslation/`, grouped by role:
 
 - `ui/` for Jetpack Compose screens and view models.
 - `service/`, `speech/`, and `overlay/` for caption runtime behavior.
@@ -34,7 +34,7 @@ The project uses JUnit 4 for local unit tests and AndroidX/JUnit/Espresso/Compos
 
 ## Commit & Pull Request Guidelines
 
-Recent commits use concise, imperative summaries, for example `Fix release workflow: add contents write permission` and `Initial commit: LiveCaptionN Android MVP`. Keep commits focused and mention the affected area when useful. Pull requests should include a short description, test results such as `./gradlew testDebugUnitTest`, linked issues when applicable, and screenshots or recordings for visible UI or overlay changes.
+Recent commits use concise, imperative summaries, for example `Fix release workflow: add contents write permission` and `Initial commit: LiveN Android MVP`. Keep commits focused and mention the affected area when useful. Pull requests should include a short description, test results such as `./gradlew testDebugUnitTest`, linked issues when applicable, and screenshots or recordings for visible UI or overlay changes.
 
 ## Security & Configuration Tips
 

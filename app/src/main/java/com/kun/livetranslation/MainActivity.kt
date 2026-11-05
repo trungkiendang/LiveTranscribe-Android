@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
         } else {
             android.widget.Toast.makeText(
                 this,
-                "Swipe down twice, tap the pencil (Edit) and drag Live CaptionN into your quick settings.",
+                "Swipe down twice, tap the pencil (Edit) and drag LiveN into your quick settings.",
                 android.widget.Toast.LENGTH_LONG
             ).show()
         }
@@ -212,6 +212,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_START_CAPTIONING = "livecaptionn.extra.START_CAPTIONING"
+        const val EXTRA_START_CAPTIONING = "livetranslation.extra.START_CAPTIONING"
     }
 }

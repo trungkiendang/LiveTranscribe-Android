@@ -47,7 +47,7 @@ class UpdateChecker {
         val request = Request.Builder()
             .url(url)
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "LiveCaptionN-Android/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "LiveN-Android/${BuildConfig.VERSION_NAME}")
             .build()
 
         try {
@@ -83,7 +83,7 @@ class UpdateChecker {
             val obj = JSONObject(json)
             val tag = obj.optString("tag_name").takeIf { it.isNotBlank() } ?: return null
             val buildNumber = parseBuildNumber(tag) ?: return null
-            val name = obj.optString("name").ifBlank { "LiveCaptionN $tag" }
+            val name = obj.optString("name").ifBlank { "LiveN $tag" }
             val notes = obj.optString("body").trim()
             val htmlUrl = obj.optString("html_url")
                 .ifBlank { "https://github.com/${BuildConfig.UPDATE_REPO_OWNER}/${BuildConfig.UPDATE_REPO_NAME}/releases/latest" }

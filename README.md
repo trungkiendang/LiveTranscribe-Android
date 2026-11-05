@@ -1,22 +1,22 @@
 <div align="center">
 
-# LiveCaptionN
+# LiveN
 
 **Real-time speech transcription and EN ⇄ VI translation, floating over any Android app.**
 
 [![Build & Release](https://github.com/trungkiendang/LiveTranscribe-Android/actions/workflows/build.yml/badge.svg)](https://github.com/trungkiendang/LiveTranscribe-Android/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/trungkiendang/LiveTranscribe-Android?color=8b5cf6)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest)
-[![Download](https://img.shields.io/badge/download-LiveCaptionN.apk-8b5cf6)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk)
+[![Download](https://img.shields.io/badge/download-LiveN.apk-8b5cf6)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveN.apk)
 [![License](https://img.shields.io/github/license/trungkiendang/LiveTranscribe-Android?color=6366f1)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%2010%2B-1a1330)](#requirements)
 
-### [Website](https://trungkiendang.github.io/LiveTranscribe-Android/) · [Tutorial](https://trungkiendang.github.io/LiveTranscribe-Android/tutorial.html) · [Download APK](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk) · [Report an issue](https://github.com/trungkiendang/LiveTranscribe-Android/issues)
+### [Website](https://trungkiendang.github.io/LiveTranscribe-Android/) · [Tutorial](https://trungkiendang.github.io/LiveTranscribe-Android/tutorial.html) · [Download APK](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveN.apk) · [Report an issue](https://github.com/trungkiendang/LiveTranscribe-Android/issues)
 
 </div>
 
 ---
 
-LiveCaptionN listens through the microphone (or the currently playing app audio), transcribes what it hears in **real time** — word by word as you speak — translates between any supported language pair, and paints the result as a draggable caption window on top of whatever you are watching or browsing. It is built for people watching foreign-language videos, following along in a meeting, or studying another language hands-free.
+LiveN listens through the microphone (or the currently playing app audio), transcribes what it hears in **real time** — word by word as you speak — translates between any supported language pair, and paints the result as a draggable caption window on top of whatever you are watching or browsing. It is built for people watching foreign-language videos, following along in a meeting, or studying another language hands-free.
 
 Both stages of the pipeline can run **fully on-device**: streaming Vosk handles speech-to-text (one long-lived recognizer fed ~100 ms audio chunks continuously), and Google ML Kit handles the text-to-text translation with ~59 languages cached offline after a one-time ~30 MB per-pair download. No server required. If you would rather use a LibreTranslate server for wider language coverage or a Whisper ASR endpoint for STT, both paths are still available in settings.
 
@@ -24,7 +24,7 @@ Both stages of the pipeline can run **fully on-device**: streaming Vosk handles 
 
 <div align="center">
 
-[![LiveCaptionN Promo Video](https://img.youtube.com/vi/ZK5CztBTgYI/maxresdefault.jpg)](https://youtu.be/ZK5CztBTgYI)
+[![LiveN Promo Video](https://img.youtube.com/vi/ZK5CztBTgYI/maxresdefault.jpg)](https://youtu.be/ZK5CztBTgYI)
 
 *Click to watch the promo video on YouTube.*
 
@@ -61,7 +61,7 @@ Both stages of the pipeline can run **fully on-device**: streaming Vosk handles 
 
 ## Translating different languages
 
-LiveCaptionN is a two-stage pipeline: **speech → text** happens in a speech engine, then **text → text** happens in LibreTranslate. You can mix and match.
+LiveN is a two-stage pipeline: **speech → text** happens in a speech engine, then **text → text** happens in LibreTranslate. You can mix and match.
 
 ### Path A — LibreTranslate (broad language coverage)
 
@@ -86,10 +86,10 @@ When you select **System Audio → Local Vosk** the source-language picker colla
 
 ## Quick install
 
-1. Download the latest APK: [**LiveCaptionN.apk** (v1.0.5)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk) — all versions are on the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases).
+1. Download the latest APK: [**LiveN.apk** (v1.0.5)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveN.apk) — all versions are on the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases).
 2. On your Android device, enable **Install unknown apps** for your browser / file manager if prompted.
 3. Open the APK and install.
-4. Launch LiveCaptionN and grant **Microphone**, **Display over other apps**, and **Notifications** permissions. (Notifications are used for update alerts only — no telemetry.)
+4. Launch LiveN and grant **Microphone**, **Display over other apps**, and **Notifications** permissions. (Notifications are used for update alerts only — no telemetry.)
 5. (Optional) Point the Translation base URL at your own LibreTranslate server.
 6. Tap **Start Captioning**, then switch to any app you want to watch or listen to.
 
@@ -124,7 +124,7 @@ For deeper notes see [`CLAUDE.md`](CLAUDE.md).
 
 ## Translation backend
 
-LiveCaptionN talks to any LibreTranslate-compatible server. The default endpoint is `http://localhost:3006` and is configurable in the main screen.
+LiveN talks to any LibreTranslate-compatible server. The default endpoint is `http://localhost:3006` and is configurable in the main screen.
 
 - `GET /languages` — list supported languages
 - `POST /translate` — body: `{ q, source, target, format: "text" }`

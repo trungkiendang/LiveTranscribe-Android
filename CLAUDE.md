@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**LiveCaptionN** (`com.kun.livetranslation`) — an Android app (Kotlin) that captures speech from the **microphone or system audio** (`MediaProjection`), transcribes it in real time, translates between language pairs, and renders captions in a draggable `SYSTEM_ALERT_WINDOW` overlay on top of any other app.
+**LiveN** (`com.kun.livetranslation`) — an Android app (Kotlin) that captures speech from the **microphone or system audio** (`MediaProjection`), transcribes it in real time, translates between language pairs, and renders captions in a draggable `SYSTEM_ALERT_WINDOW` overlay on top of any other app.
 
 Both stages of the pipeline are designed to run **fully on-device by default**: streaming Vosk for STT, Google ML Kit for translation. Remote backends (LibreTranslate, Whisper HTTP) are still selectable as fallbacks.
 

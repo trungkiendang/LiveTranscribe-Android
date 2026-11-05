@@ -19,7 +19,7 @@ from pathlib import Path
 CATALOG = Path(__file__).resolve().parents[1] / "app/src/main/java/com/kun/livetranslation/speech/VoskModelCatalog.kt"
 BASE = "https://alphacephei.com/vosk/models/"
 ROW = re.compile(r'(small|large)\(\s*"([a-z]{2})",\s*"[^"]+",\s*"([^"]+)",\s*(\d+)\s*\)')
-UA = {"User-Agent": "LiveCaptionN-model-link-check/1.0"}
+UA = {"User-Agent": "LiveN-model-link-check/1.0"}
 
 
 def head(url):

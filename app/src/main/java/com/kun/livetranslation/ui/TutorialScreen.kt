@@ -88,10 +88,10 @@ data class TutorialStep(
 
 val TUTORIAL_STEPS = listOf(
     TutorialStep(
-        title = "1. Introduction to LiveCaptionN",
+        title = "1. Introduction to LiveN",
         subtitle = "Floating real-time speech captions & translation overlay",
-        narration = "Welcome to LiveCaptionN! The app captures spoken words from your microphone or app audio and displays live draggable captions on top of any video, meeting, or streaming app.",
-        captionPreview = "LiveCaptionN: Floating subtitles in real-time on any app.",
+        narration = "Welcome to LiveN! The app captures spoken words from your microphone or app audio and displays live draggable captions on top of any video, meeting, or streaming app.",
+        captionPreview = "LiveN: Floating subtitles in real-time on any app.",
         details = listOf(
             "Floating subtitle window draggable anywhere on your screen.",
             "Choose between completely offline on-device processing or self-hosted remote servers.",
@@ -128,7 +128,7 @@ val TUTORIAL_STEPS = listOf(
         captionPreview = "Enter http://<YOUR_LOCAL_IP>:9000 and :5000 in Settings.",
         details = listOf(
             "1. Find your computer's IP address: Run 'ipconfig' on Windows (or 'ip a' on Linux/Mac).",
-            "2. In LiveCaptionN Settings, enter: STT URL: http://<IP>:9000 and Translation URL: http://<IP>:5000",
+            "2. In LiveN Settings, enter: STT URL: http://<IP>:9000 and Translation URL: http://<IP>:5000",
             "3. Ensure both your phone and PC are connected to the same Wi-Fi network."
         )
     )

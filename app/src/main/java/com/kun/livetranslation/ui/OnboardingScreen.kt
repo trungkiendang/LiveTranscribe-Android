@@ -85,7 +85,7 @@ fun OnboardingScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    t["Live CaptionN"],
+                    t["LiveN"],
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer

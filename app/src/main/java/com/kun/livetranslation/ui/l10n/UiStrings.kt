@@ -58,7 +58,7 @@ class UiStrings(private val map: Map<String, String> = emptyMap()) {
 object UiStringCatalog {
 
     /** Short display name of the app itself, used directly as a catalog key. */
-    const val appName = "Live CaptionN"
+    const val appName = "LiveN"
 
     /** Every unique English string / template the UI may pass through `t[...]`. */
     val ALL: List<String> = listOf(
@@ -259,11 +259,11 @@ object UiStringCatalog {
         "Shows when live captioning is active.",
 
         // Update notifier
-        "LiveCaptionN update available",
+        "LiveN update available",
         "%s is ready to install",
         "Download",
         "App updates",
-        "Notifies you when a new version of LiveCaptionN is available on GitHub",
+        "Notifies you when a new version of LiveN is available on GitHub",
 
         // Interface language feature
         "Interface language",

@@ -53,7 +53,7 @@ class UpdateNotifier(
         val readyLine = s.format("%s is ready to install", info.releaseName)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle(s["LiveCaptionN update available"])
+            .setContentTitle(s["LiveN update available"])
             .setContentText(readyLine)
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
@@ -89,7 +89,7 @@ class UpdateNotifier(
             "App updates",
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Notifies you when a new version of LiveCaptionN is available on GitHub"
+            description = "Notifies you when a new version of LiveN is available on GitHub"
         }
         nm.createNotificationChannel(channel)
     }
