@@ -117,8 +117,8 @@ class AiApi(private val settingsRepository: SettingsRepository) {
         }
     }
 
-    /** Model ids the provider says it offers (needs a valid key). */
-    suspend fun listModels(cfg: AiConfig): Result<List<String>> = withContext(Dispatchers.IO) {
+    /** Models the provider says it offers, with whatever details it gives (needs a valid key). */
+    suspend fun listModels(cfg: AiConfig): Result<List<AiModelInfo>> = withContext(Dispatchers.IO) {
         if (cfg.apiKey.isBlank()) return@withContext Result.failure(IOException("API key is empty"))
         val req = when (cfg.provider) {
             AiProvider.GEMINI -> Request.Builder().url("${cfg.endpoint}/models?pageSize=200").header("x-goog-api-key", cfg.apiKey.trim())
@@ -126,7 +126,7 @@ class AiApi(private val settingsRepository: SettingsRepository) {
             AiProvider.ANTHROPIC -> Request.Builder().url("${cfg.endpoint}/models?limit=100")
                 .header("x-api-key", cfg.apiKey.trim()).header("anthropic-version", "2023-06-01")
         }.get().build()
-        send(req).mapCatching { parseModelIds(cfg.provider, it) }
+        send(req).mapCatching { parseModels(cfg.provider, it) }
     }
 
     /** Runs a real translation (and a speech request if supported) with [cfg], without saving it. */
@@ -204,19 +204,34 @@ class AiApi(private val settingsRepository: SettingsRepository) {
         fun parseAnthropicText(body: String): String =
             JSONObject(body).optJSONArray("content")?.optJSONObject(0)?.optString("text")?.trim().orEmpty()
 
-        fun parseModelIds(provider: AiProvider, body: String): List<String> {
+        fun parseModels(provider: AiProvider, body: String): List<AiModelInfo> {
             val root = JSONObject(body)
-            val out = mutableListOf<String>()
+            val out = mutableListOf<AiModelInfo>()
             if (provider == AiProvider.GEMINI) {
                 val arr = root.optJSONArray("models") ?: return out
                 for (i in 0 until arr.length()) {
                     val m = arr.optJSONObject(i) ?: continue
                     val methods = m.optJSONArray("supportedGenerationMethods")?.toString().orEmpty()
-                    if (methods.contains("generateContent")) out += m.optString("name").removePrefix("models/")
+                    if (!methods.contains("generateContent")) continue
+                    out += AiModelInfo(
+                        id = m.optString("name").removePrefix("models/"),
+                        displayName = m.optString("displayName"),
+                        description = m.optString("description"),
+                        inputTokens = m.optLong("inputTokenLimit", 0).takeIf { it > 0 },
+                        outputTokens = m.optLong("outputTokenLimit", 0).takeIf { it > 0 }
+                    )
                 }
             } else {
                 val arr = root.optJSONArray("data") ?: return out
-                for (i in 0 until arr.length()) arr.optJSONObject(i)?.optString("id")?.takeIf { it.isNotBlank() }?.let { out += it }
+                for (i in 0 until arr.length()) {
+                    val m = arr.optJSONObject(i) ?: continue
+                    val id = m.optString("id").takeIf { it.isNotBlank() } ?: continue
+                    out += AiModelInfo(
+                        id = id,
+                        displayName = m.optString("display_name"),
+                        extra = m.optString("owned_by").takeIf { it.isNotBlank() }?.let { "by $it" } ?: ""
+                    )
+                }
             }
             return out
         }

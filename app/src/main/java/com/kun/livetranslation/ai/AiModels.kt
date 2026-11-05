@@ -25,7 +25,32 @@ data class AiConfig(
     val canTranscribe: Boolean get() = AiCatalog.supportsAudio(this)
 }
 
-data class ModelOption(val id: String, val recommended: Boolean, val note: String = "")
+/** What a provider's model-list endpoint tells us about one model. */
+data class AiModelInfo(
+    val id: String,
+    val displayName: String = "",
+    val description: String = "",
+    val inputTokens: Long? = null,
+    val outputTokens: Long? = null,
+    val extra: String = ""
+) {
+    /** One line like "1M in · 65K out · owned by openai". */
+    val summary: String
+        get() = listOfNotNull(
+            inputTokens?.let { "${compact(it)} in" },
+            outputTokens?.let { "${compact(it)} out" },
+            extra.takeIf { it.isNotBlank() }
+        ).joinToString(" · ")
+
+    private fun compact(n: Long): String = when {
+        n >= 1_000_000 -> "${n / 1_000_000}M"
+        n >= 1_000 -> "${n / 1_000}K"
+        else -> n.toString()
+    }
+}
+
+/** A row in the model picker: [note] is our hint, [info] is what the provider reported. */
+data class ModelOption(val id: String, val recommended: Boolean, val note: String = "", val info: AiModelInfo? = null)
 
 /** A ready-made OpenAI-compatible service. */
 data class AiPreset(
@@ -88,10 +113,12 @@ object AiCatalog {
         AiProvider.OPENAI_COMPAT -> presetFor(config)?.models.orEmpty()
     }
 
-    /** Live model ids with the recommended ones first (flagged), then the rest alphabetically. */
-    fun merge(live: List<String>, recommended: List<ModelOption>): List<ModelOption> {
-        val rec = recommended.filter { r -> live.isEmpty() || live.any { it.equals(r.id, true) } }
+    /** Live models with the recommended ones first (flagged), then the rest alphabetically. */
+    fun merge(live: List<AiModelInfo>, recommended: List<ModelOption>): List<ModelOption> {
+        fun find(id: String) = live.firstOrNull { it.id.equals(id, true) }
+        val rec = recommended.filter { r -> live.isEmpty() || find(r.id) != null }.map { it.copy(info = find(it.id)) }
         val recIds = rec.map { it.id.lowercase() }.toSet()
-        return rec + live.distinct().filter { it.lowercase() !in recIds }.sorted().map { ModelOption(it, false) }
+        return rec + live.distinctBy { it.id }.filter { it.id.lowercase() !in recIds }
+            .sortedBy { it.id }.map { ModelOption(it.id, false, info = it) }
     }
 }

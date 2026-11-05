@@ -18,6 +18,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.kun.livetranslation.BuildConfig
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -118,19 +124,13 @@ fun MainScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onHistory: () -> Unit = {},
-    onAddQuickTile: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val ui by viewModel.state.collectAsStateWithLifecycle()
     val t = LocalUiStrings.current
-    var translateUrlDraft by remember(ui.settings.serverBaseUrl) { mutableStateOf(ui.settings.serverBaseUrl) }
-    var sttUrlDraft by remember(ui.settings.sttBaseUrl) { mutableStateOf(ui.settings.sttBaseUrl) }
     var showVoskSheet by remember { mutableStateOf(false) }
-    var showAdvanced by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.refreshPermissionState() }
-
-    val feedbackCtx = LocalContext.current
-    val feedbackApp = feedbackCtx.applicationContext as com.kun.livetranslation.LiveCaptionApp
 
 
     // Re-check permission state on every resume so granting overlay/mic
@@ -165,6 +165,9 @@ fun MainScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = t["Settings"])
+                    }
                     IconButton(onClick = { viewModel.openTutorial() }) {
                         Icon(Icons.Filled.HelpOutline, contentDescription = "Tutorial & Guide")
                     }
@@ -179,11 +182,13 @@ fun MainScreen(
             )
         }
     ) { padding ->
+        // On wide screens (tablets, unfolded foldables) keep the content in a centered column.
+        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier = Modifier
+                .widthIn(max = 640.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -245,62 +250,10 @@ fun MainScreen(
                 viewModel = viewModel,
                 onManageModels = { showVoskSheet = true },
             )
-            OutlinedButton(
-                onClick = onAddQuickTile,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(t["Add quick toggle to status bar"]) }
-            TextButton(
-                onClick = { showAdvanced = !showAdvanced },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (showAdvanced) t["Hide advanced settings"] else t["Advanced settings"]) }
-            if (showAdvanced) {
-                DeviceCompatibilityCard(
-                    specs = ui.deviceSpecs,
-                    onWatchTutorial = { viewModel.openTutorial() },
-                    onSimulateTier = { viewModel.setSimulatedTier(it) }
-                )
-                OverlaySettingsCard(
-                    ui = ui,
-                    viewModel = viewModel,
-                )
-                FeatureToolsCard(
-                    settings = ui.settings,
-                    profiles = feedbackApp.container.captionProfiles,
-                    glossary = feedbackApp.container.glossary,
-                    micPermissionGranted = ui.micPermissionGranted,
-                    overlayPermissionGranted = ui.overlayPermissionGranted,
-                    voskModels = ui.voskModels,
-                    onApplyProfile = viewModel::applyProfile,
-                    onSaveHistoryChange = viewModel::updateSaveHistory,
-                )
-                AiProviderCard(saved = ui.settings.aiConfig, onSave = viewModel::updateAiConfig)
-                UiLanguageCard(
-                    languageCode = ui.uiLanguageCode,
-                    busy = ui.uiLocalizationBusy,
-                    error = ui.uiLocalizationError,
-                    stage = ui.uiLocalizationStage,
-                    translatedCount = ui.uiLocalizationTranslated,
-                    translatedTotal = ui.uiLocalizationTotal,
-                    onSelect = viewModel::updateUiLanguage
-                )
-                ServerCard(
-                    ui = ui,
-                    translateUrl = translateUrlDraft,
-                    onTranslateUrlChange = { translateUrlDraft = it },
-                    onSaveTranslateUrl = { viewModel.updateBaseUrl(translateUrlDraft) },
-                    onRefreshLibre = { viewModel.refreshLibreCatalog() },
-                    onSelectTranslationBackend = viewModel::updateTranslationBackend,
-                    sttUrl = sttUrlDraft,
-                    onSttUrlChange = { sttUrlDraft = it },
-                    onSaveSttUrl = { viewModel.updateSttUrl(sttUrlDraft) },
-                    showStt = ui.settings.audioSource == AudioSource.SYSTEM &&
-                        ui.settings.sttBackend == SttBackend.REMOTE_WHISPER
-                )
-
-            }
             Spacer(modifier = Modifier.height(16.dp))
 
             Spacer(Modifier.height(8.dp))
+        }
         }
 
         if (showVoskSheet) {
@@ -1823,6 +1776,183 @@ private fun DeviceCompatibilityCard(
                         TextButton(onClick = { showSimMenu = false }) { Text("Cancel") }
                     }
                 )
+            }
+        }
+    }
+}
+
+
+// ── Settings screen ──
+
+/**
+ * All settings in one screen. Narrow screens get one scrolling column; wide screens (tablets,
+ * an unfolded Galaxy Z Fold) get two balanced columns.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    viewModel: MainViewModel,
+    onBack: () -> Unit,
+    onAddQuickTile: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val ui by viewModel.state.collectAsStateWithLifecycle()
+    val t = LocalUiStrings.current
+    val context = LocalContext.current
+    val container = (context.applicationContext as com.kun.livetranslation.LiveCaptionApp).container
+    var translateUrlDraft by remember(ui.settings.serverBaseUrl) { mutableStateOf(ui.settings.serverBaseUrl) }
+    var sttUrlDraft by remember(ui.settings.sttBaseUrl) { mutableStateOf(ui.settings.sttBaseUrl) }
+
+    val statusBarAndUpdates: @Composable () -> Unit = {
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel(t["Status bar quick toggle"])
+                Text(
+                    t["Start and stop captions from the quick settings panel, without opening the app."],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedButton(onClick = onAddQuickTile, modifier = Modifier.fillMaxWidth()) {
+                    Text(t["Add quick toggle to status bar"])
+                }
+            }
+        }
+    }
+    val updatesCard: @Composable () -> Unit = { UpdatesCard(ui, viewModel) }
+    val aiCard: @Composable () -> Unit = { AiProviderCard(saved = ui.settings.aiConfig, onSave = viewModel::updateAiConfig) }
+    val engineCard: @Composable () -> Unit = {
+        ServerCard(
+            ui = ui,
+            translateUrl = translateUrlDraft,
+            onTranslateUrlChange = { translateUrlDraft = it },
+            onSaveTranslateUrl = { viewModel.updateBaseUrl(translateUrlDraft) },
+            onRefreshLibre = { viewModel.refreshLibreCatalog() },
+            onSelectTranslationBackend = viewModel::updateTranslationBackend,
+            sttUrl = sttUrlDraft,
+            onSttUrlChange = { sttUrlDraft = it },
+            onSaveSttUrl = { viewModel.updateSttUrl(sttUrlDraft) },
+            showStt = ui.settings.audioSource == AudioSource.SYSTEM &&
+                ui.settings.sttBackend == SttBackend.REMOTE_WHISPER
+        )
+    }
+    val overlayCard: @Composable () -> Unit = { OverlaySettingsCard(ui = ui, viewModel = viewModel) }
+    val toolsCard: @Composable () -> Unit = {
+        FeatureToolsCard(
+            settings = ui.settings,
+            profiles = container.captionProfiles,
+            glossary = container.glossary,
+            micPermissionGranted = ui.micPermissionGranted,
+            overlayPermissionGranted = ui.overlayPermissionGranted,
+            voskModels = ui.voskModels,
+            onApplyProfile = viewModel::applyProfile,
+            onSaveHistoryChange = viewModel::updateSaveHistory,
+        )
+    }
+    val languageCard: @Composable () -> Unit = {
+        UiLanguageCard(
+            languageCode = ui.uiLanguageCode,
+            busy = ui.uiLocalizationBusy,
+            error = ui.uiLocalizationError,
+            stage = ui.uiLocalizationStage,
+            translatedCount = ui.uiLocalizationTranslated,
+            translatedTotal = ui.uiLocalizationTotal,
+            onSelect = viewModel::updateUiLanguage
+        )
+    }
+    val deviceCard: @Composable () -> Unit = {
+        DeviceCompatibilityCard(
+            specs = ui.deviceSpecs,
+            onWatchTutorial = { viewModel.openTutorial() },
+            onSimulateTier = { viewModel.setSimulatedTier(it) }
+        )
+    }
+
+    val left = listOf(statusBarAndUpdates, updatesCard, aiCard, engineCard)
+    val right = listOf(overlayCard, toolsCard, languageCard, deviceCard)
+
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(t["Settings"], fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, contentDescription = t["Back"])
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    ) { padding ->
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
+            if (maxWidth >= 720.dp) {
+                Row(
+                    Modifier.widthIn(max = 1100.dp).fillMaxSize().padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    listOf(left, right).forEach { column ->
+                        Column(
+                            Modifier.weight(1f).fillMaxSize().verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) { column.forEach { it() } }
+                    }
+                }
+            } else {
+                Column(
+                    Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) { (left + right).forEach { it() } }
+            }
+        }
+    }
+}
+
+/** Version, a manual "Check for updates" button, and how updates normally arrive. */
+@Composable
+private fun UpdatesCard(ui: MainUiState, viewModel: MainViewModel) {
+    val t = LocalUiStrings.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<com.kun.livetranslation.update.UpdateChecker.Result?>(null) }
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(t["About and updates"])
+            Text("LiveN v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                t["LiveN checks for a new version each time it opens and about every 12 hours. You can also check now."],
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            when (val r = result) {
+                is com.kun.livetranslation.update.UpdateChecker.Result.UpToDate ->
+                    Text("✓ ${t["You have the latest version."]}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                is com.kun.livetranslation.update.UpdateChecker.Result.Failed ->
+                    Text("✗ ${t["Could not check"]}: ${r.reason}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                is com.kun.livetranslation.update.UpdateChecker.Result.Available ->
+                    Text("${t["New version available"]}: ${r.info.releaseName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                null -> {}
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    enabled = !checking,
+                    onClick = {
+                        checking = true
+                        scope.launch {
+                            result = viewModel.checkForUpdates()
+                            checking = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text(if (checking) t["Checking…"] else t["Check for updates"]) }
+                (result as? com.kun.livetranslation.update.UpdateChecker.Result.Available)?.let { r ->
+                    Button(onClick = { viewModel.openUpdateUrl(context, r.info) }, modifier = Modifier.weight(1f)) {
+                        Text(t["Download APK"])
+                    }
+                }
             }
         }
     }

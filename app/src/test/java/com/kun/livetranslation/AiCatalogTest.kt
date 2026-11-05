@@ -3,6 +3,7 @@ package com.kun.livetranslation
 import com.kun.livetranslation.ai.AiApi
 import com.kun.livetranslation.ai.AiCatalog
 import com.kun.livetranslation.ai.AiConfig
+import com.kun.livetranslation.ai.AiModelInfo
 import com.kun.livetranslation.ai.AiProvider
 import com.kun.livetranslation.ai.ModelOption
 import org.junit.Assert.assertEquals
@@ -15,14 +16,14 @@ class AiCatalogTest {
     @Test
     fun merge_putsRecommendedFirst_thenRestAlphabetical() {
         val rec = listOf(ModelOption("m-fast", true), ModelOption("m-big", false))
-        val merged = AiCatalog.merge(listOf("zeta", "m-big", "alpha", "m-fast"), rec)
+        val merged = AiCatalog.merge(listOf("zeta", "m-big", "alpha", "m-fast").map { AiModelInfo(it) }, rec)
         assertEquals(listOf("m-fast", "m-big", "alpha", "zeta"), merged.map { it.id })
         assertTrue(merged.first().recommended)
     }
 
     @Test
     fun merge_dropsRecommendedModelsTheProviderDoesNotOffer() {
-        val merged = AiCatalog.merge(listOf("only-this"), listOf(ModelOption("gone", true)))
+        val merged = AiCatalog.merge(listOf(AiModelInfo("only-this")), listOf(ModelOption("gone", true)))
         assertEquals(listOf("only-this"), merged.map { it.id })
     }
 
@@ -55,12 +56,22 @@ class AiCatalogTest {
     }
 
     @Test
-    fun parseModelIds_filtersGeminiToGenerateContentModels() {
+    fun parseModels_geminiKeepsGenerateContentModels_withLimitsAndNames() {
         val gemini = """{"models":[
-            {"name":"models/gemini-2.5-flash","supportedGenerationMethods":["generateContent"]},
+            {"name":"models/gemini-2.5-flash","displayName":"Gemini 2.5 Flash","description":"Fast",
+             "inputTokenLimit":1048576,"outputTokenLimit":65536,"supportedGenerationMethods":["generateContent"]},
             {"name":"models/embedding-001","supportedGenerationMethods":["embedContent"]}]}"""
-        assertEquals(listOf("gemini-2.5-flash"), AiApi.parseModelIds(AiProvider.GEMINI, gemini))
-        assertEquals(listOf("gpt-4o", "whisper-1"), AiApi.parseModelIds(AiProvider.OPENAI_COMPAT, """{"data":[{"id":"gpt-4o"},{"id":"whisper-1"}]}"""))
+        val models = AiApi.parseModels(AiProvider.GEMINI, gemini)
+        assertEquals(listOf("gemini-2.5-flash"), models.map { it.id })
+        assertEquals("Gemini 2.5 Flash", models[0].displayName)
+        assertEquals("1M in · 65K out", models[0].summary)
+    }
+
+    @Test
+    fun parseModels_openAiStyleReadsIdAndOwner() {
+        val models = AiApi.parseModels(AiProvider.OPENAI_COMPAT, """{"data":[{"id":"gpt-4o","owned_by":"openai"},{"id":"whisper-1"}]}""")
+        assertEquals(listOf("gpt-4o", "whisper-1"), models.map { it.id })
+        assertEquals("by openai", models[0].summary)
     }
 
     @Test
