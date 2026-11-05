@@ -86,7 +86,7 @@ When you select **System Audio → Local Vosk** the source-language picker colla
 
 ## Quick install
 
-1. Download the latest APK: [**LiveCaptionN.apk** (v1.0.1)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk) — all versions are on the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases).
+1. Download the latest APK: [**LiveCaptionN.apk** (v1.0.5)](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveCaptionN.apk) — all versions are on the [releases page](https://github.com/trungkiendang/LiveTranscribe-Android/releases).
 2. On your Android device, enable **Install unknown apps** for your browser / file manager if prompted.
 3. Open the APK and install.
 4. Launch LiveCaptionN and grant **Microphone**, **Display over other apps**, and **Notifications** permissions. (Notifications are used for update alerts only — no telemetry.)
