@@ -348,7 +348,64 @@ class CaptionForegroundService : Service() {
 
             showOverlay()
             observeOverlayUpdates()
+            watchSettingsForLiveSwitch()
         }
+    }
+
+    /** Everything the running pipeline was built from; a change needs a rebuild, not just a re-read. */
+    private data class PipelineConfig(
+        val source: String, val autoDetect: Boolean, val audioSource: AudioSource,
+        val stt: SttBackend, val sttUrl: String, val translation: TranslationBackend,
+        val aiProvider: Any, val aiKey: String, val aiBaseUrl: String, val aiSttModel: String
+    )
+
+    private fun CaptionSettings.pipelineConfig() = PipelineConfig(
+        sourceLanguageCode, autoDetectSource, audioSource, sttBackend, sttBaseUrl, translationBackend,
+        aiProvider, aiApiKey, aiBaseUrl, aiSttModel
+    )
+
+    /**
+     * Applies settings changes made while captioning: engine-level changes rebuild the pipeline with
+     * the new config, and a new language pair or translation engine is prewarmed right away.
+     */
+    private fun watchSettingsForLiveSwitch() {
+        serviceScope.launch {
+            val settingsFlow = app.container.settingsRepository.settingsFlow
+            var last = settingsFlow.first()
+            settingsFlow.collect { now ->
+                val before = last
+                last = now
+                if (now.pipelineConfig() != before.pipelineConfig()) {
+                    Log.d("CaptionService", "settings changed -> restarting pipeline")
+                    // The engine releases its screen-capture token on stop and Android won't hand out a second
+                    // one from the same grant, so system audio needs the user to start again.
+                    if (currentAudioSource == AudioSource.SYSTEM) {
+                        failAndStop("Settings changed. Start again to apply them (system audio needs capture permission again).")
+                    } else {
+                        restartFlow()
+                    }
+                } else if (now.targetLanguageCode != before.targetLanguageCode) {
+                    launch(Dispatchers.IO) {
+                        runCatching { app.container.translationRepository.prewarm(now.sourceLanguageCode, now.targetLanguageCode) }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Rebuilds engine, translation loop and overlay from current settings without dropping the foreground service. */
+    private fun restartFlow() {
+        try { speechEngine?.stop() } catch (_: Throwable) {}
+        speechEngine = null
+        overlayController?.hide()
+        overlayController = null
+        overlayReady.value = 0
+        synchronized(this) { bufferedText = ""; bufferedLineId = NO_LINE_ID }
+        pendingFinalTranslations.clear()
+        serviceScope.cancel()
+        serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        captionSessionActive.set(false)
+        startFlow()
     }
 
     private fun observeEngineStatus(statusFlow: StateFlow<RecognitionStatus>) {
@@ -398,6 +455,7 @@ class CaptionForegroundService : Service() {
         opacity = settings.overlayOpacity,
         showOriginal = settings.showOriginal,
         minimized = settings.overlayMinimized,
+        autoHide = settings.autoHideOverlay,
         themeId = settings.overlayThemeId,
         fontId = settings.overlayFontId
     )
