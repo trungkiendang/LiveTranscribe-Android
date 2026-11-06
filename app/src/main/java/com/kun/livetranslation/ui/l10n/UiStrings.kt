@@ -136,6 +136,7 @@ object UiStringCatalog {
         "Text size: %dsp",
         "Opacity: %d%%",
         "Show original text",
+        "Hide when quiet",
         "Add",
         "Overlay theme",
         "Overlay font",

@@ -61,6 +61,12 @@ class OverlayController(
     private var minimized = false
     // Minimized view is just the header, so it must stay visible.
     private val hideControlsTask = Runnable { if (!minimized && !settingsOpen) header?.visibility = View.GONE }
+    private var lastSignature = ""
+    private var hideScheduled = false
+    private val autoHideTask = Runnable {
+        hideScheduled = false
+        if (!settingsOpen) root?.visibility = View.INVISIBLE
+    }
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val handleHitPx get() = dp(44)
 
@@ -96,6 +102,18 @@ class OverlayController(
             private var downX = 0f
             private var downY = 0f
             private var downOnHandle = false
+            private var downOnControl = false
+
+            override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+                if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+                    // A finger on the overlay keeps the controls up (or brings them back) instead of racing the hide timer.
+                    if (!settingsOpen) showControls()
+                    downOnControl = listOf(settingsButton, pauseButton, minButton, closeButton).any { b ->
+                        b != null && b.isShown && android.graphics.Rect().also { b.getGlobalVisibleRect(it) }.contains(ev.rawX.toInt(), ev.rawY.toInt())
+                    }
+                }
+                return super.dispatchTouchEvent(ev)
+            }
 
             // Take over once a touch turns into a drag, so the whole caption box moves
             // (not just the header). Touches that start on the resize handle are left alone.
@@ -106,7 +124,7 @@ class OverlayController(
                         downOnHandle = ev.x > width - handleHitPx && ev.y > height - handleHitPx
                     }
                     MotionEvent.ACTION_MOVE ->
-                        if (!downOnHandle && kotlin.math.hypot(ev.rawX - downX, ev.rawY - downY) > touchSlop) return true
+                        if (!downOnHandle && !downOnControl && kotlin.math.hypot(ev.rawX - downX, ev.rawY - downY) > touchSlop * 2) return true
                 }
                 return false
             }
@@ -274,6 +292,10 @@ class OverlayController(
     fun update(ui: OverlayUiState) {
         val frame = root ?: return
         lastUi = ui
+        val signature = ui.originalText + "\u0000" + ui.translatedText
+        val activity = signature != lastSignature
+        lastSignature = signature
+        applyAutoHide(frame, ui, activity)
         val container = frame.getChildAt(0) as? LinearLayout ?: return
         val theme = OverlayThemeCatalog.find(ui.themeId)
         val font = OverlayFontCatalog.find(ui.fontId)
@@ -343,6 +365,20 @@ class OverlayController(
         }
     }
 
+    /** Hides the box after [AUTO_HIDE_MS] without new speech; new text, a pause, an error or the settings panel bring it back. */
+    private fun applyAutoHide(frame: View, ui: OverlayUiState, activity: Boolean) {
+        val keep = !ui.autoHide || ui.status == RecognitionStatus.PAUSED || !ui.statusDetail.isNullOrBlank() || settingsOpen
+        if (keep || activity) {
+            handler.removeCallbacks(autoHideTask)
+            hideScheduled = false
+            frame.visibility = View.VISIBLE
+        }
+        if (!keep && (activity || (frame.visibility == View.VISIBLE && !hideScheduled))) {
+            hideScheduled = true
+            handler.postDelayed(autoHideTask, AUTO_HIDE_MS)
+        }
+    }
+
     // Re-setting identical text still triggers a measure/layout pass.
     private fun TextView.setTextIfChanged(new: CharSequence) {
         if (text.toString() != new.toString()) text = new
@@ -360,6 +396,7 @@ class OverlayController(
         // with "view must not be null" inside WindowManager.
         params = null
         handler.removeCallbacks(hideControlsTask)
+        handler.removeCallbacks(autoHideTask)
         header = null
         statusText = null
         originalContainer = null
@@ -435,6 +472,17 @@ class OverlayController(
                 setPadding(0, dp(8), 0, dp(4))
                 setOnCheckedChangeListener { _, on -> saveSetting { it.copy(showOriginal = on) } }
             })
+            addView(android.widget.Switch(context).apply {
+                text = s["Hide when quiet"]
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                isChecked = ui?.autoHide ?: true
+                setPadding(0, dp(4), 0, dp(4))
+                setOnCheckedChangeListener { _, on ->
+                    saveSetting { it.copy(autoHideOverlay = on) }
+                    lastUi = lastUi?.copy(autoHide = on)
+                }
+            })
             addView(label(s["Theme"]))
             addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -474,7 +522,7 @@ class OverlayController(
         contentDescription = contentDesc
         setBackgroundColor(Color.TRANSPARENT)
         setColorFilter(Color.WHITE)
-        val size = dp(32)
+        val size = dp(40)
         layoutParams = LinearLayout.LayoutParams(size, size).apply {
             setMargins(dp(2), 0, dp(2), 0)
         }
@@ -584,6 +632,7 @@ class OverlayController(
     }
 
     private companion object {
-        const val CONTROLS_HIDE_MS = 4_000L
+        const val CONTROLS_HIDE_MS = 6_000L
+        const val AUTO_HIDE_MS = 8_000L
     }
 }

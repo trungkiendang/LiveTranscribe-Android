@@ -34,6 +34,7 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
             p[OVERLAY_X] = next.overlayX
             p[OVERLAY_Y] = next.overlayY
             p[OVERLAY_MIN] = next.overlayMinimized
+            p[AUTO_HIDE_OVERLAY] = next.autoHideOverlay
             p[AUDIO_SOURCE] = next.audioSource.name
             p[STT_BACKEND] = next.sttBackend.name
             p[TRANSLATION_BACKEND] = next.translationBackend.name
@@ -82,6 +83,7 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
             aiBaseUrl = this[AI_BASE_URL] ?: "",
             aiModel = this[AI_MODEL] ?: this[OLD_GEMINI_MODEL] ?: CaptionSettings.DEFAULT_AI_MODEL,
             aiSttModel = this[AI_STT_MODEL] ?: "",
+            autoHideOverlay = this[AUTO_HIDE_OVERLAY] ?: defaults.autoHideOverlay,
             overlayWidthDp = this[OVERLAY_W] ?: CaptionSettings.DEFAULT_OVERLAY_WIDTH_DP,
             overlayHeightDp = this[OVERLAY_H] ?: CaptionSettings.DEFAULT_OVERLAY_HEIGHT_DP,
             overlayThemeId = this[OVERLAY_THEME] ?: defaults.overlayThemeId,
@@ -116,6 +118,7 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
         val AI_STT_MODEL = stringPreferencesKey("ai_stt_model")
         val OLD_GEMINI_KEY = stringPreferencesKey("gemini_api_key")
         val OLD_GEMINI_MODEL = stringPreferencesKey("gemini_model")
+        val AUTO_HIDE_OVERLAY = booleanPreferencesKey("auto_hide_overlay")
         val OVERLAY_W = intPreferencesKey("overlay_w")
         val OVERLAY_H = intPreferencesKey("overlay_h")
         val OVERLAY_THEME = stringPreferencesKey("overlay_theme")

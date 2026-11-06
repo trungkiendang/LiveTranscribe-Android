@@ -9,6 +9,8 @@ data class CaptionSettings(
     val textSizeSp: Float = 20f,
     val overlayOpacity: Float = 0.65f,
     val showOriginal: Boolean = true,
+    /** Fade the caption box away after a few quiet seconds; it returns with the next speech. */
+    val autoHideOverlay: Boolean = true,
     val serverBaseUrl: String = DEFAULT_BASE_URL,
     val overlayX: Int = 60,
     val overlayY: Int = 220,
