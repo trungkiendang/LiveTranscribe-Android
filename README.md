@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/github/license/trungkiendang/LiveTranscribe-Android?color=6366f1)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%2010%2B-1a1330)](#requirements)
 
-### [Website](https://trungkiendang.github.io/LiveTranscribe-Android/) · [Tutorial](https://trungkiendang.github.io/LiveTranscribe-Android/tutorial.html) · [Download APK](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveN.apk) · [Report an issue](https://github.com/trungkiendang/LiveTranscribe-Android/issues)
+### [Website](https://trungkiendang.github.io/LiveTranscribe-Android/) · [Download APK](https://github.com/trungkiendang/LiveTranscribe-Android/releases/latest/download/LiveN.apk) · [Report an issue](https://github.com/trungkiendang/LiveTranscribe-Android/issues)
 
 </div>
 
@@ -21,14 +21,6 @@ LiveN listens through the microphone (or the currently playing app audio), trans
 Both stages of the pipeline can run **fully on-device**: streaming Vosk handles speech-to-text (one long-lived recognizer fed ~100 ms audio chunks continuously), and Google ML Kit handles the text-to-text translation with ~59 languages cached offline after a one-time ~30 MB per-pair download. No server required. If you would rather use a LibreTranslate server for wider language coverage or a Whisper ASR endpoint for STT, both paths are still available in settings.
 
 ## Demo
-
-<div align="center">
-
-[![LiveN Promo Video](https://img.youtube.com/vi/ZK5CztBTgYI/maxresdefault.jpg)](https://youtu.be/ZK5CztBTgYI)
-
-*Click to watch the promo video on YouTube.*
-
-</div>
 
 ## Screenshots
 

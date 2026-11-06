@@ -44,8 +44,6 @@ data class MainUiState(
     val deviceSpecs: DeviceSpecs? = null,
     /** Dismissible alert when device is unsupported for on-device AI. */
     val showUnsupportedModal: Boolean = false,
-    /** Whether the in-app tutorial screen is open. */
-    val showTutorial: Boolean = false
 ) {
     /** Languages the user is allowed to pick as the speech source, given the
      *  current audio source + STT backend combination. */
