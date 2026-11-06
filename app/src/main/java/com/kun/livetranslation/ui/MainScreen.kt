@@ -755,7 +755,8 @@ private fun LanguageCard(
             // Context-specific helper text
             val vmAudio = ui.settings.audioSource
             val vmStt = ui.settings.sttBackend
-            val usingMlKit = ui.settings.translationBackend == TranslationBackend.ML_KIT
+            // Cloud AI and the Samsung translator also use the ML Kit language list; only LibreTranslate has its own.
+            val usingMlKit = ui.settings.translationBackend != TranslationBackend.LIBRE_TRANSLATE
             when {
                 vmAudio == AudioSource.SYSTEM && vmStt == SttBackend.LOCAL_VOSK -> {
                     Text(
