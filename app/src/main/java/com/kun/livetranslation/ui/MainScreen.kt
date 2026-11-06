@@ -596,16 +596,14 @@ private fun AudioSourceCard(
             if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
                 val installed = ui.voskModels.count { it.installed }
                 val anyLargeInstalled = ui.voskModels.any { it.installed && it.quality == ModelQuality.LARGE }
-                val langWord = if (installed == 1) t["language"] else t["languages"]
                 Text(
-                    text = t["Runs transcription fully on this device."] +
-                        " $installed $langWord ${t["installed."]}",
+                    text = t.format("Runs on this phone and works offline. Speech models installed: %d.", installed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!anyLargeInstalled) {
                     Text(
-                        text = t["Tip: for noticeably stronger transcription, tap Manage models and install a LARGE server-grade model for the languages you use — 80 MB to 2 GB each, fully offline after download."],
+                        text = t["Tip: for better accuracy, tap Manage on-device models and install a LARGE model for the languages you use. Each is 80 MB to 2 GB and works offline after download."],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary
                     )
@@ -752,62 +750,47 @@ private fun LanguageCard(
                 onPick = { viewModel.updateTarget(it.code) }
             )
 
-            // Context-specific helper text
-            val vmAudio = ui.settings.audioSource
-            val vmStt = ui.settings.sttBackend
-            val usingMlKit = ui.settings.translationBackend == TranslationBackend.ML_KIT
-            when {
-                vmAudio == AudioSource.SYSTEM && vmStt == SttBackend.LOCAL_VOSK -> {
-                    Text(
-                        text = t["On-device transcription: source language is limited to the Vosk models installed on this phone."],
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(onClick = onManageModels) {
-                        Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(t["Download more languages"])
-                    }
+            // Two independent notes: what limits the Source list, and what the Target list comes from.
+            if (ui.settings.audioSource == AudioSource.SYSTEM && ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
+                Text(
+                    text = t["Speech recognition runs on this phone with Vosk, so you can only pick a source language whose speech model is installed."],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = onManageModels) {
+                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(t["Download more languages"])
                 }
-                usingMlKit -> {
-                    Text(
-                        text = t.format(
-                            "On-device translation via Google ML Kit — %d languages, fully offline after first download.",
-                            MlKitLanguages.LIST.size
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            val note = MaterialTheme.typography.bodySmall
+            val noteColor = MaterialTheme.colorScheme.onSurfaceVariant
+            when (ui.settings.translationBackend) {
+                TranslationBackend.ML_KIT -> Text(
+                    t.format("Translated on this phone with Google ML Kit: %d languages. Each language pair downloads a ~30 MB model once, then works offline.", MlKitLanguages.LIST.size),
+                    style = note, color = noteColor
+                )
+                TranslationBackend.SYSTEM -> Text(
+                    t.format("Translated by your Samsung phone's built-in translator, with Google ML Kit as backup for pairs it lacks. The list shows the %d languages ML Kit supports.", MlKitLanguages.LIST.size),
+                    style = note, color = noteColor
+                )
+                TranslationBackend.AI -> Text(
+                    t.format("Translated online by your AI provider; your text is sent to it. The list shows the same %d languages as on-device translation.", MlKitLanguages.LIST.size),
+                    style = note, color = noteColor
+                )
+                TranslationBackend.LIBRE_TRANSLATE -> when {
+                    ui.libreLanguages.isEmpty() && ui.libreError != null -> Text(
+                        t.format("Could not reach your LibreTranslate server at %s, so a basic language list is shown. Check the address under Translation engine.", ui.settings.serverBaseUrl),
+                        style = note, color = MaterialTheme.colorScheme.error
                     )
-                }
-                ui.libreLanguages.isEmpty() && ui.libreError != null -> {
-                    Text(
-                        text = t.format(
-                            "Could not reach LibreTranslate at %s — showing a fallback list. Save a valid URL to load the full language set from your server.",
-                            ui.settings.serverBaseUrl
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                ui.libreLoading -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    ui.libreLoading -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = t["Loading languages from LibreTranslate…"],
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text(t["Loading languages from your LibreTranslate server…"], style = note, color = noteColor)
                     }
-                }
-                ui.libreLanguages.isNotEmpty() -> {
-                    Text(
-                        text = t.format(
-                            "%d languages reported by LibreTranslate. Add more to your server by installing extra Argos Translate packages.",
-                            ui.libreLanguages.size
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ui.libreLanguages.isNotEmpty() -> Text(
+                        t.format("%d languages from your LibreTranslate server. To add more, install extra Argos Translate packages on the server.", ui.libreLanguages.size),
+                        style = note, color = noteColor
                     )
                 }
             }
@@ -825,10 +808,17 @@ private fun LanguageCard(
             }
             if (ui.settings.autoDetectSource) {
                 Text(
-                    text = if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK)
-                        t["Auto-detect fixes the translation step only. On-device Vosk still listens in the Source language above; pick Remote Whisper to detect the spoken language itself."]
-                    else
-                        t["Remote Whisper detects the spoken language; the translation follows it. Choose the target language above."],
+                    text = when (ui.settings.sttBackend) {
+                        SttBackend.LOCAL_VOSK ->
+                            t["Auto-detect only affects translation. Vosk still listens in the Source language above; choose Cloud AI or Remote Whisper to detect the spoken language too."]
+                        SttBackend.AI ->
+                            t["Cloud AI detects the spoken language and the translation follows it. Choose the target language above."]
+                        SttBackend.REMOTE_WHISPER ->
+                            if (ui.settings.audioSource == AudioSource.SYSTEM)
+                                t["Your Whisper server detects the spoken language and the translation follows it. Choose the target language above."]
+                            else
+                                t["Android's built-in recognizer listens in the Source language above; auto-detect only affects translation."]
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1266,7 +1256,7 @@ private fun ServerCard(
                 )
                 EngineOption(
                     title = t["Cloud AI"],
-                    subtitle = t["Your AI provider translates the text, with better context. Set it up in Settings; without a key ML Kit is used."],
+                    subtitle = t["Your AI provider translates the text, with better context. Add your API key in the AI provider section above; without one, ML Kit is used."],
                     icon = Icons.Filled.Cloud,
                     selected = ui.settings.translationBackend == TranslationBackend.AI,
                     badge = if (noAiKey) t["Needs API key"] else t["Online"],
@@ -1660,7 +1650,7 @@ private fun BorderlineDeviceBanner(
                 )
             }
             Text(
-                text = "Your device (${specs.deviceModel}) meets the minimum requirements, but has limited resources (${specs.totalRamMb} MB RAM, ${specs.cpuCores} cores, ${if (specs.is64Bit) "64-bit" else "32-bit"}). On-device models may experience latency or memory pressure. For best performance, remote Whisper is recommended.",
+                text = "Your device (${specs.deviceModel}) meets the minimum requirements, but has limited resources (${specs.totalRamMb} MB RAM, ${specs.cpuCores} cores, ${if (specs.is64Bit) "64-bit" else "32-bit"}). On-device models may be slow or run short of memory here. For best results, use Cloud AI or your own Whisper server for speech recognition.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF3E2723)
             )
