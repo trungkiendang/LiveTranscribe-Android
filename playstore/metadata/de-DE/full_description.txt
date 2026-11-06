@@ -1,4 +1,4 @@
-LiveCaptionN verwandelt Ihr Android-Gerät in einen leistungsstarken Assistenten für Live-Untertitel und Echtzeit-Übersetzung, der als schwebendes Fenster über jeder beliebigen App angezeigt wird. Erleben Sie sofortige Untertitel für Videos, soziale Medien, Sprach- und Videoanrufe, Podcasts, Meetings, Vorlesungen und Gespräche. Perfekt für fremdsprachige Inhalte, Sprachenlernen oder barrierefreies Hören.
+LiveN verwandelt Ihr Android-Gerät in einen leistungsstarken Assistenten für Live-Untertitel und Echtzeit-Übersetzung, der als schwebendes Fenster über jeder beliebigen App angezeigt wird. Erleben Sie sofortige Untertitel für Videos, soziale Medien, Sprach- und Videoanrufe, Podcasts, Meetings, Vorlesungen und Gespräche. Perfekt für fremdsprachige Inhalte, Sprachenlernen oder barrierefreies Hören.
 
 HAUPTFUNKTIONEN
 • Schwebendes Untertitel-Overlay: Frei verschiebbares, anpassbares Fenster über allen Apps; jederzeit pausieren oder minimieren.
@@ -10,7 +10,7 @@ HAUPTFUNKTIONEN
 • Umfassende Anpassung: Schriftgröße, Textfarben, Hintergrundtransparenz und Position frei wählbar.
 
 ON-DEVICE-KI VS. SELBSTGEHOSTETER MODUS
-LiveCaptionN bietet Ihnen die Wahl, wie Ihre Sprachdaten verarbeitet werden:
+LiveN bietet Ihnen die Wahl, wie Ihre Sprachdaten verarbeitet werden:
 
 • Modus 1: On-Device-KI (100% Offline & Privat)
 Verarbeitet alles lokal auf Ihrem Smartphone ohne Internetverbindung. Nach dem Herunterladen der Vosk-Sprachmodelle und ML Kit-Sprachpakete verlassen Ihre Audiodaten und Transkripte niemals das Gerät. Keine Registrierung, kein Tracking, absolute Privatsphäre.
@@ -21,7 +21,7 @@ Verbinden Sie sich mit Ihrem PC oder Heimserver, auf dem OpenAI Whisper ASR und 
 - Vorteile: Lagert rechenintensive KI auf Ihren Rechner aus, schont Smartphone-Akku und Prozessor bei überragender Whisper-Genauigkeit. Inklusive interaktivem Video- und Audio-Tutorial.
 
 SYSTEMANFORDERUNGEN & HARDWARE-PRÜFUNG
-LiveCaptionN analysiert Ihre Hardware beim Start und empfiehlt den optimalen Modus:
+LiveN analysiert Ihre Hardware beim Start und empfiehlt den optimalen Modus:
 
 • On-Device-Modus:
 - Minimum: 2.5 GB RAM, 4 CPU-Kerne, 350 MB freier Speicherplatz.

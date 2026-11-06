@@ -1,4 +1,4 @@
-LiveCaptionN convierte tu dispositivo Android en un potente asistente de subtitulado y traducción en directo que se superpone a cualquier aplicación. Disfruta de subtítulos instantáneos para vídeos, redes sociales, llamadas de voz y vídeo, podcasts, reuniones, conferencias y conversaciones cotidianas. Ideal para ver contenidos en otros idiomas, aprender lenguas o accesibilidad auditiva.
+LiveN convierte tu dispositivo Android en un potente asistente de subtitulado y traducción en directo que se superpone a cualquier aplicación. Disfruta de subtítulos instantáneos para vídeos, redes sociales, llamadas de voz y vídeo, podcasts, reuniones, conferencias y conversaciones cotidianas. Ideal para ver contenidos en otros idiomas, aprender lenguas o accesibilidad auditiva.
 
 CARACTERÍSTICAS PRINCIPALES
 • Ventana Flotante de Subtítulos: Redimensionable y desplazable sobre cualquier app; pausa, minimiza o personaliza en cualquier momento.
@@ -10,7 +10,7 @@ CARACTERÍSTICAS PRINCIPALES
 • Personalización Total: Ajusta el tamaño de letra, colores, opacidad de fondo y posición.
 
 IA EN EL DISPOSITIVO VS. MODO AUTOHOSPEDADO
-LiveCaptionN te ofrece la flexibilidad de elegir cómo procesar el audio:
+LiveN te ofrece la flexibilidad de elegir cómo procesar el audio:
 
 • Modo 1: IA en el Dispositivo (100% Sin Conexión y Privado)
 Procesa todo de forma local en tu teléfono sin requerir conexión a internet. Tras descargar el modelo de voz Vosk y los paquetes de idioma de ML Kit, tus audios y transcripciones nunca salen del móvil. Sin registro, sin rastreo y con total privacidad.
@@ -21,7 +21,7 @@ Conéctate a tu propio ordenador o servidor doméstico ejecutando OpenAI Whisper
 - Ventajas: Descarga el trabajo intensivo de IA en tu PC, ahorrando batería y CPU con la máxima precisión de Whisper. Incluye tutorial interactivo con vídeo y audio.
 
 REQUISITOS DEL SISTEMA Y COMPATIBILIDAD
-LiveCaptionN comprueba automáticamente tu hardware al inicio para recomendarte el modo idóneo:
+LiveN comprueba automáticamente tu hardware al inicio para recomendarte el modo idóneo:
 
 • Modo en el Dispositivo:
 - Mínimo: 2.5 GB de RAM, procesador de 4 núcleos, 350 MB de almacenamiento libre.

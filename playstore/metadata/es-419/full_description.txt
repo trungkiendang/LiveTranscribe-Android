@@ -1,4 +1,4 @@
-LiveCaptionN convierte tu dispositivo Android en un potente asistente de subtítulos y traducción en tiempo real que flota sobre cualquier aplicación. Disfruta de subtítulos instantáneos para videos, redes sociales, llamadas de voz y video, podcasts, reuniones, clases y conversaciones cotidianas. Ideal para ver contenido en otros idiomas, aprender lenguas o accesibilidad auditiva.
+LiveN convierte tu dispositivo Android en un potente asistente de subtítulos y traducción en tiempo real que flota sobre cualquier aplicación. Disfruta de subtítulos instantáneos para videos, redes sociales, llamadas de voz y video, podcasts, reuniones, clases y conversaciones cotidianas. Ideal para ver contenido en otros idiomas, aprender lenguas o accesibilidad auditiva.
 
 CARACTERÍSTICAS PRINCIPALES
 • Ventana Flotante de Subtítulos: Ajustable y reubicable sobre cualquier app; pausa, minimiza o personaliza en cualquier momento.
@@ -10,7 +10,7 @@ CARACTERÍSTICAS PRINCIPALES
 • Personalización Total: Ajusta tamaño de letra, colores, opacidad de fondo y ubicación.
 
 IA EN EL DISPOSITIVO VS. MODO AUTOHOSPEDADO
-LiveCaptionN te ofrece total libertad para elegir cómo procesar el audio:
+LiveN te ofrece total libertad para elegir cómo procesar el audio:
 
 • Modo 1: IA en el Dispositivo (100% Sin Conexión y Privado)
 Procesa todo localmente en tu teléfono sin conexión a internet. Tras descargar el modelo Vosk y los paquetes de idioma de ML Kit, tus audios y transcripciones nunca salen de tu dispositivo. Sin registro de cuentas, sin rastreo y con máxima privacidad.
@@ -21,7 +21,7 @@ Conéctate a tu propia computadora o servidor doméstico ejecutando OpenAI Whisp
 - Ventajas: Traslada el procesamiento pesado a tu PC, ahorrando batería y CPU con la máxima precisión de Whisper. Incluye tutorial interactivo integrado con video y audio.
 
 REQUISITOS DEL SISTEMA Y CONTROL DE COMPATIBILIDAD
-LiveCaptionN analiza tu hardware al iniciar para sugerir la mejor configuración:
+LiveN analiza tu hardware al iniciar para sugerir la mejor configuración:
 
 • Requisitos para Modo en el Dispositivo:
 - Mínimo: 2.5 GB de RAM, procesador de 4 núcleos, 350 MB de almacenamiento libre.

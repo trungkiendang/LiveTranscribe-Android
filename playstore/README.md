@@ -1,6 +1,6 @@
 # Play Store submission pack
 
-Everything needed to push a LiveCaptionN release to the Google Play Store, in
+Everything needed to push a LiveN release to the Google Play Store, in
 one folder. Nothing in here is consumed by the build — it is a curated set of
 artifacts for the Play Console upload forms.
 
@@ -100,7 +100,7 @@ upload to Play Console → Production → Create new release → Upload.
    and every PNG in `graphics/phone-screenshots/`.
 4. Paste the privacy policy URL from `metadata/en-US/privacy_policy_url.txt`
    into **App content → Privacy policy**.
-5. Complete the **Data safety** form. LiveCaptionN collects no personal
+5. Complete the **Data safety** form. LiveN collects no personal
    audio/transcript/settings data (that never leaves the device), but does
    use AdMob (ads) and Firebase Crashlytics/Analytics/Performance
    (crash reports + basic usage stats, release builds only) — declare both.

@@ -1,1 +1,1 @@
-LiveCaptionN - 실시간 자막
+LiveN - 실시간 자막
