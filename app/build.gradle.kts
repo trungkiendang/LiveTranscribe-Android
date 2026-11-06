@@ -61,6 +61,10 @@ android {
             useSupportLibrary = true
         }
 
+        // Phones only: x86/x86_64 (emulators) would add ~40 MB of onnxruntime and Vosk libraries.
+        // shortcut: x86 emulators can no longer run the app; remove this line to test on one.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+
         // Inject server URLs; sanitizes any raw IP address so builds never ship baked-in IPs
         val defaultTranslate = sanitizeServerUrl(localProps.getProperty("translate.url"), "http://localhost:3006")
         val defaultStt = sanitizeServerUrl(localProps.getProperty("stt.url"), "http://localhost:9000/asr?output=json")
