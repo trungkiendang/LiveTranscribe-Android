@@ -308,14 +308,6 @@ class MainViewModel(
         }
     }
 
-    fun openTutorial() {
-        mutableState.value = mutableState.value.copy(showTutorial = true)
-    }
-
-    fun closeTutorial() {
-        mutableState.value = mutableState.value.copy(showTutorial = false)
-    }
-
     fun updateSttUrl(url: String) {
         viewModelScope.launch { container.settingsRepository.update { it.copy(sttBaseUrl = url) } }
     }

@@ -146,14 +146,6 @@ fun MainScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    if (ui.showTutorial) {
-        TutorialScreen(
-            deviceSpecs = ui.deviceSpecs,
-            onDismiss = { viewModel.closeTutorial() }
-        )
-        return
-    }
-
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -168,9 +160,6 @@ fun MainScreen(
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = t["Settings"])
-                    }
-                    IconButton(onClick = { viewModel.openTutorial() }) {
-                        Icon(Icons.Filled.HelpOutline, contentDescription = "Tutorial & Guide")
                     }
                     IconButton(onClick = onHistory) {
                         Icon(Icons.Filled.History, contentDescription = t["History"])
@@ -206,26 +195,14 @@ fun MainScreen(
             }
 
             val specs = ui.deviceSpecs
-            val setupContext = LocalContext.current
-            val openWebDoc: () -> Unit = {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(REMOTE_SETUP_DOC_URL)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                setupContext.startActivity(intent)
-            }
 
             if (specs != null) {
                 if (specs.tier == CompatibilityTier.UNSUPPORTED) {
-                    UnsupportedDeviceBanner(
-                        specs = specs,
-                        onWatchTutorial = { viewModel.openTutorial() },
-                        onOpenDoc = openWebDoc
-                    )
+                    UnsupportedDeviceBanner(specs = specs)
                 } else if (specs.tier == CompatibilityTier.BORDERLINE && !ui.settings.borderlineWarningDismissed) {
                     BorderlineDeviceBanner(
                         specs = specs,
-                        onProceedAnyway = { viewModel.dismissBorderlineWarning() },
-                        onWatchTutorial = { viewModel.openTutorial() }
+                        onProceedAnyway = { viewModel.dismissBorderlineWarning() }
                     )
                 }
             }
@@ -273,11 +250,7 @@ fun MainScreen(
         if (ui.showUnsupportedModal) {
             UnsupportedDeviceDialog(
                 specs = ui.deviceSpecs,
-                onDismiss = { viewModel.dismissUnsupportedModal() },
-                onWatchTutorial = {
-                    viewModel.dismissUnsupportedModal()
-                    viewModel.openTutorial()
-                }
+                onDismiss = { viewModel.dismissUnsupportedModal() }
             )
         }
 
@@ -1571,11 +1544,7 @@ private fun UiLanguageCard(
 // ── Compatibility & Hardware Requirements ──
 
 @Composable
-private fun UnsupportedDeviceBanner(
-    specs: DeviceSpecs,
-    onWatchTutorial: () -> Unit,
-    onOpenDoc: () -> Unit
-) {
+private fun UnsupportedDeviceBanner(specs: DeviceSpecs) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -1607,27 +1576,6 @@ private fun UnsupportedDeviceBanner(
                 style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF546E7A)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onWatchTutorial,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Watch Tutorial", fontSize = 12.sp)
-                }
-                OutlinedButton(
-                    onClick = onOpenDoc,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Setup Guide", fontSize = 12.sp)
-                }
-            }
         }
     }
 }
@@ -1635,8 +1583,7 @@ private fun UnsupportedDeviceBanner(
 @Composable
 private fun BorderlineDeviceBanner(
     specs: DeviceSpecs,
-    onProceedAnyway: () -> Unit,
-    onWatchTutorial: () -> Unit
+    onProceedAnyway: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1673,15 +1620,6 @@ private fun BorderlineDeviceBanner(
                 ) {
                     Text("Proceed Anyway", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-                OutlinedButton(
-                    onClick = onWatchTutorial,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Setup Guide", fontSize = 12.sp)
-                }
             }
         }
     }
@@ -1690,8 +1628,7 @@ private fun BorderlineDeviceBanner(
 @Composable
 private fun UnsupportedDeviceDialog(
     specs: DeviceSpecs?,
-    onDismiss: () -> Unit,
-    onWatchTutorial: () -> Unit
+    onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1719,12 +1656,7 @@ private fun UnsupportedDeviceDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onWatchTutorial) {
-                Text("Watch Tutorial")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
+            Button(onClick = onDismiss) {
                 Text("Understood")
             }
         }
@@ -1734,7 +1666,6 @@ private fun UnsupportedDeviceDialog(
 @Composable
 private fun DeviceCompatibilityCard(
     specs: DeviceSpecs?,
-    onWatchTutorial: () -> Unit,
     onSimulateTier: (CompatibilityTier?) -> Unit
 ) {
     if (specs == null) return
@@ -1782,15 +1713,6 @@ private fun DeviceCompatibilityCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(
-                    onClick = onWatchTutorial,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Tutorial & Guide", fontSize = 12.sp)
-                }
                 OutlinedButton(
                     onClick = { showSimMenu = true },
                     shape = RoundedCornerShape(8.dp)
@@ -1915,7 +1837,6 @@ fun SettingsScreen(
     val deviceCard: @Composable () -> Unit = {
         DeviceCompatibilityCard(
             specs = ui.deviceSpecs,
-            onWatchTutorial = { viewModel.openTutorial() },
             onSimulateTier = { viewModel.setSimulatedTier(it) }
         )
     }

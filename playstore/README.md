@@ -28,8 +28,6 @@ playstore/
 │       ├── 02_overlay_listening.png
 │       ├── 03_main.png
 │       └── 04_history.png
-└── video/
-    └── promo-storyboard.md            Shot list + VO script for the 30 second YouTube promo
 ```
 
 All four phone screenshots are padded to exactly 1122×2244 (a 1:2 aspect) so
@@ -116,9 +114,7 @@ upload to Play Console → Production → Create new release → Upload.
    `app/build.gradle.kts`. Add your own account under **Setup → License
    testing** before trying a test purchase.
 8. Upload the signed `.aab` under **Production → Create new release**.
-9. Record the promo video per `video/promo-storyboard.md`, upload to
-   YouTube, paste the URL into **Store listing → Video**.
-10. Submit for review.
+9. Submit for review.
 
 ## Permissions justification (Play Console: App access)
 
