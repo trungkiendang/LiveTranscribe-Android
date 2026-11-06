@@ -1,4 +1,4 @@
-LiveCaptionN trasforma il tuo smartphone Android in un potente assistente per sottotitoli in tempo reale e traduzione istantanea, visibile in sovrimpressione su qualsiasi app. Ottieni sottotitoli immediati per video, social network, chiamate vocali e video, podcast, riunioni e conversazioni quotidiane. Perfetto per guardare contenuti in lingua straniera, studiare lingue o per l'accessibilità uditiva.
+LiveN trasforma il tuo smartphone Android in un potente assistente per sottotitoli in tempo reale e traduzione istantanea, visibile in sovrimpressione su qualsiasi app. Ottieni sottotitoli immediati per video, social network, chiamate vocali e video, podcast, riunioni e conversazioni quotidiane. Perfetto per guardare contenuti in lingua straniera, studiare lingue o per l'accessibilità uditiva.
 
 FUNZIONALITÀ PRINCIPALI
 • Finestra Sottotitoli Flottante: Finestra ridimensionabile e trascinabile sopra qualsiasi app; metti in pausa o riduci a icona in qualsiasi momento.
@@ -10,7 +10,7 @@ FUNZIONALITÀ PRINCIPALI
 • Personalizzazione Totale: Modifica dimensioni del carattere, colori del testo, opacità dello sfondo e posizione.
 
 IA SUL DISPOSITIVO VS. MODALITÀ SELF-HOSTED
-LiveCaptionN ti offre la massima flessibilità nell'elaborazione dell'audio:
+LiveN ti offre la massima flessibilità nell'elaborazione dell'audio:
 
 • Modalità 1: IA sul Dispositivo (100% Offline e Privata)
 Elabora tutto localmente sul telefono senza connessione a internet. Dopo aver scaricato il modello vocale Vosk e i pacchetti lingua ML Kit, l'audio e le trascrizioni non lasciano mai il dispositivo. Nessun account richiesto, nessun tracciamento.
@@ -21,7 +21,7 @@ Collegati al tuo computer o server domestico con OpenAI Whisper ASR e LibreTrans
 - Vantaggi: Affida l'elaborazione pesante al PC, risparmiando batteria e CPU con la straordinaria precisione di Whisper. Include tutorial interattivo con video e voce guida.
 
 REQUISITI DI SISTEMA E COMPATIBILITÀ
-LiveCaptionN esegue un controllo hardware automatico all'avvio per consigliarti la modalità migliore:
+LiveN esegue un controllo hardware automatico all'avvio per consigliarti la modalità migliore:
 
 • Modalità sul Dispositivo:
 - Requisiti minimi: 2.5 GB di RAM, processore quad-core, 350 MB di memoria libera.

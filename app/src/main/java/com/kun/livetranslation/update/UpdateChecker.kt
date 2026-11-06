@@ -88,13 +88,20 @@ class UpdateChecker {
         mutable.value = null
     }
 
+    /** Release bodies are markdown; the banner and notification are plain text. */
+    private fun plainNotes(md: String): String = md.lineSequence()
+        .filterNot { it.contains("Full Changelog", ignoreCase = true) }
+        .joinToString("\n") { it.replace(Regex("^\\s*#+\\s*"), "").replace("**", "").replace("`", "") }
+        .replace(Regex("\\n{3,}"), "\n\n")
+        .trim()
+
     private fun parseRelease(json: String): UpdateInfo? {
         return try {
             val obj = JSONObject(json)
             val tag = obj.optString("tag_name").takeIf { it.isNotBlank() } ?: return null
             val buildNumber = parseBuildNumber(tag) ?: return null
             val name = obj.optString("name").ifBlank { "LiveN $tag" }
-            val notes = obj.optString("body").trim()
+            val notes = plainNotes(obj.optString("body"))
             val htmlUrl = obj.optString("html_url")
                 .ifBlank { "https://github.com/${BuildConfig.UPDATE_REPO_OWNER}/${BuildConfig.UPDATE_REPO_NAME}/releases/latest" }
 

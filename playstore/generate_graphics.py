@@ -161,7 +161,7 @@ def draw_feature_graphic(w: int = 1024, h: int = 500) -> Image.Image:
     hint_font = _font("arial.ttf", 24)
 
     text_left = 450
-    d.text((text_left, 138), "LiveCaptionN", fill=OFF_WHITE, font=title_font)
+    d.text((text_left, 138), "LiveN", fill=OFF_WHITE, font=title_font)
     d.text(
         (text_left, 238),
         "Live captions & translation",

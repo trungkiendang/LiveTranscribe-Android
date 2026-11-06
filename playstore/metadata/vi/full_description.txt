@@ -1,4 +1,4 @@
-LiveCaptionN biến thiết bị Android của bạn thành trợ lý tạo phụ đề trực tiếp và dịch thuật tức thì với cửa sổ nổi trên mọi ứng dụng. Xem phụ đề thời gian thực cho video, mạng xã hội, cuộc gọi thoại và video, podcast, cuộc họp và trò chuyện hàng ngày. Lựa chọn lý tưởng khi xem nội dung nước ngoài, học ngoại ngữ hoặc hỗ trợ người khiếm thính.
+LiveN biến thiết bị Android của bạn thành trợ lý tạo phụ đề trực tiếp và dịch thuật tức thì với cửa sổ nổi trên mọi ứng dụng. Xem phụ đề thời gian thực cho video, mạng xã hội, cuộc gọi thoại và video, podcast, cuộc họp và trò chuyện hàng ngày. Lựa chọn lý tưởng khi xem nội dung nước ngoài, học ngoại ngữ hoặc hỗ trợ người khiếm thính.
 
 TÍNH NĂNG NỔI BẬT
 • Cửa sổ Phụ Đề Nổi: Tự do thay đổi kích thước và di chuyển trên mọi app; tạm dừng, thu nhỏ hoặc tùy chỉnh bất kỳ lúc nào.
@@ -10,7 +10,7 @@ TÍNH NĂNG NỔI BẬT
 • Tùy Biến Toàn Diện: Điều chỉnh kích thước chữ, màu văn bản, độ trong suốt nền và vị trí hiển thị.
 
 TRÍ TUỆ NHÂN TẠO TRÊN MÁY VS. TỰ LƯU TRỮ (SELF-HOSTED)
-LiveCaptionN cho phép bạn linh hoạt lựa chọn phương thức xử lý giọng nói:
+LiveN cho phép bạn linh hoạt lựa chọn phương thức xử lý giọng nói:
 
 • Chế độ 1: AI Trực Tiếp Trên Máy (100% Ngoại Tuyến & Riêng Tư)
 Xử lý hoàn toàn cục bộ trên điện thoại mà không cần kết nối mạng. Sau khi tải mô hình giọng nói Vosk và gói ngôn ngữ ML Kit, âm thanh và văn bản không bao giờ rời khỏi máy. Không cần tài khoản, hoàn toàn bảo mật.
@@ -21,7 +21,7 @@ Kết nối với máy tính cá nhân hoặc máy chủ gia đình chạy OpenA
 - Ưu điểm: Chuyển toàn bộ gánh nặng tính toán AI sang máy tính, tiết kiệm pin và CPU điện thoại với độ chính xác tuyệt đối của Whisper. Kèm video hướng dẫn tương tác trực quan.
 
 YÊU CẦU HỆ THỐNG & KIỂM TRA TƯƠNG THÍCH
-LiveCaptionN tự động kiểm tra phần cứng thiết bị khi khởi động:
+LiveN tự động kiểm tra phần cứng thiết bị khi khởi động:
 
 • Yêu cầu Chế độ Trên Máy:
 - Tối thiểu: 2.5 GB RAM, vi xử lý 4 nhân, 350 MB bộ nhớ trống.

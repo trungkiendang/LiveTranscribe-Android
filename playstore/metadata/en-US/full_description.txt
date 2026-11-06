@@ -1,4 +1,4 @@
-LiveCaptionN turns your Android device into a powerful live captioning and instant translation assistant that floats over any application. Enjoy real-time subtitles for videos, social media, voice and video calls, podcasts, meetings, lectures, and live conversations. Whether you are watching foreign content, learning a new language, or need hearing accessibility, LiveCaptionN delivers continuous word-by-word captions right when you need them.
+LiveN turns your Android device into a powerful live captioning and instant translation assistant that floats over any application. Enjoy real-time subtitles for videos, social media, voice and video calls, podcasts, meetings, lectures, and live conversations. Whether you are watching foreign content, learning a new language, or need hearing accessibility, LiveN delivers continuous word-by-word captions right when you need them.
 
 CORE FEATURES
 • Floating Caption Overlay: Resizable, draggable window that floats over any app; pause, minimize, or customize anytime.
@@ -10,7 +10,7 @@ CORE FEATURES
 • Complete Customization: Adjust font size, text colors, background opacity, and positioning.
 
 ON-DEVICE AI VS. SELF-HOSTED (HOW IT WORKS)
-LiveCaptionN gives you the flexibility to choose how your speech is processed:
+LiveN gives you the flexibility to choose how your speech is processed:
 
 • Mode 1: On-Device AI (100% Offline & Private)
 Processes everything locally on your phone without internet access. After downloading your preferred Vosk speech model and ML Kit language packs, your audio and captions never leave your device. Zero account sign-up, zero tracking, and complete privacy.
@@ -21,7 +21,7 @@ Connect to your own computer or home server running OpenAI Whisper ASR and Libre
 - Benefits: Offloads heavy AI computing from your phone to your PC, saving battery and CPU while delivering state-of-the-art Whisper accuracy. Includes an in-app interactive tutorial with video and audio guidance.
 
 HARDWARE REQUIREMENTS & COMPATIBILITY CHECK
-LiveCaptionN automatically checks your hardware at startup to recommend the optimal mode:
+LiveN automatically checks your hardware at startup to recommend the optimal mode:
 
 • On-Device Mode:
 - Minimum: 2.5 GB RAM, 4 CPU cores, 350 MB free storage.

@@ -1,4 +1,4 @@
-LiveCaptionN transforme votre appareil Android en un assistant complet de sous-titrage en direct et de traduction instantanée flottant au-dessus de n'importe quelle application. Profitez de sous-titres en temps réel pour vos vidéos, réseaux sociaux, appels vocaux et vidéo, podcasts, réunions et conversations. Idéal pour visionner des contenus étrangers, apprendre une langue ou pour l'accessibilité auditive.
+LiveN transforme votre appareil Android en un assistant complet de sous-titrage en direct et de traduction instantanée flottant au-dessus de n'importe quelle application. Profitez de sous-titres en temps réel pour vos vidéos, réseaux sociaux, appels vocaux et vidéo, podcasts, réunions et conversations. Idéal pour visionner des contenus étrangers, apprendre une langue ou pour l'accessibilité auditive.
 
 FONCTIONNALITÉS PRINCIPALES
 • Fenêtre Flottante de Sous-titres : Redimensionnable et déplaçable au-dessus de vos applications ; mettez en pause ou réduisez à tout moment.
@@ -10,7 +10,7 @@ FONCTIONNALITÉS PRINCIPALES
 • Personnalisation Complète : Ajustez la taille de police, les couleurs du texte, l'opacité et l'emplacement.
 
 IA SUR L'APPAREIL VS. MODE AUTO-HÉBERGÉ
-LiveCaptionN vous offre le choix du mode de traitement audio :
+LiveN vous offre le choix du mode de traitement audio :
 
 • Mode 1 : IA sur l'appareil (100% Hors Ligne et Privé)
 Traite l'intégralité du flux localement sur votre téléphone sans connexion Internet. Après téléchargement du modèle vocal Vosk et des packs de langue ML Kit, vos données audio et textes ne quittent jamais votre mobile. Zéro compte requis, zéro pistage.
@@ -21,7 +21,7 @@ Connectez-vous à votre propre ordinateur ou serveur domestique exécutant OpenA
 - Avantages : Délègue les calculs lourds à votre PC, préservant la batterie et le processeur de votre téléphone avec la précision maximale de Whisper. Tutoriel interactif vidéo et audio intégré.
 
 EXIGENCES SYSTÈME ET CONTRÔLE DE COMPATIBILITÉ
-LiveCaptionN teste automatiquement votre matériel au démarrage pour sélectionner le mode optimal :
+LiveN teste automatiquement votre matériel au démarrage pour sélectionner le mode optimal :
 
 • Mode sur l'appareil :
 - Minimum : 2.5 Go de RAM, processeur 4 cœurs, 350 Mo de stockage libre.
