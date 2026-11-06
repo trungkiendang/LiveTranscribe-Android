@@ -59,7 +59,9 @@ object UpdateInstaller {
                 WorkInfo.State.RUNNING ->
                     if (info.progress.getString(KEY_PHASE) == PHASE_INSTALL) UpdateProgress(UpdateProgress.State.INSTALLING)
                     else UpdateProgress(UpdateProgress.State.DOWNLOADING, info.progress.getInt(KEY_PERCENT, 0))
-                WorkInfo.State.SUCCEEDED -> UpdateProgress(UpdateProgress.State.INSTALLING)
+                // The download is done; the system dialog owns the rest. Keeping "installing" here would hide the
+                // Update button for good if the user dismissed that dialog or a newer release came out later.
+                WorkInfo.State.SUCCEEDED -> null
                 WorkInfo.State.FAILED -> UpdateProgress(UpdateProgress.State.FAILED, message = info.outputData.getString(KEY_ERROR))
                 WorkInfo.State.CANCELLED -> null
             }
