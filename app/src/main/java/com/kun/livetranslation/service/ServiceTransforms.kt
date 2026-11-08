@@ -81,12 +81,32 @@ internal fun updateTranscriptTranslation(
 internal fun overlayTranscriptText(runtime: CaptionRuntimeState): String {
     val rendered = runtime.transcriptLines
         .mapNotNull { it.translatedText.trim().takeIf { t -> t.isNotBlank() } }
-    val historyText = if (rendered.isNotEmpty()) rendered.joinToString("\n") else ""
     val livePartial = runtime.translatedText.trim()
-    return when {
-        historyText.isBlank() -> livePartial
-        livePartial.isBlank() -> historyText
-        historyText.endsWith(livePartial) -> historyText
-        else -> "$historyText\n$livePartial"
+    val pieces = when {
+        livePartial.isBlank() -> rendered
+        rendered.lastOrNull()?.endsWith(livePartial) == true -> rendered
+        else -> rendered + livePartial
     }
+    return toParagraphs(pieces)
+}
+
+private val SENTENCE_BREAK = Regex("(?<=[.!?…。！？])\\s*")
+private const val PARAGRAPH_CHARS = 140
+
+/**
+ * Joins caption fragments into a continuous text: fragments flow on in one paragraph, a sentence
+ * end can start a new one once the paragraph is long enough, and paragraphs are separated by a blank line.
+ */
+internal fun toParagraphs(pieces: List<String>): String {
+    val sentences = pieces.joinToString(" ").split(SENTENCE_BREAK).map { it.trim() }.filter { it.isNotEmpty() }
+    val paragraphs = mutableListOf<StringBuilder>()
+    for (sentence in sentences) {
+        val current = paragraphs.lastOrNull()
+        if (current == null || current.length + sentence.length > PARAGRAPH_CHARS) {
+            paragraphs += StringBuilder(sentence)
+        } else {
+            current.append(' ').append(sentence)
+        }
+    }
+    return paragraphs.joinToString("\n\n")
 }

@@ -155,7 +155,7 @@ class ServiceTransformsTest {
             translatedText = "the gioi"
         )
         val result = overlayTranscriptText(state)
-        assertEquals("xin chao\nthe gioi", result)
+        assertEquals("xin chao the gioi", result)
     }
 
     @Test
@@ -178,5 +178,17 @@ class ServiceTransformsTest {
             )
         )
         assertEquals("the gioi", overlayTranscriptText(state))
+    }
+
+    @Test
+    fun overlayTranscriptText_startsNewParagraphWhenTheCurrentOneIsFull() {
+        val long = "Day la mot cau kha dai de lam day mot doan van ban o tren man hinh dien thoai cua ban."
+        val state = CaptionRuntimeState(
+            transcriptLines = listOf(
+                CaptionRuntimeLine(id = 1L, originalText = "a", translatedText = long),
+                CaptionRuntimeLine(id = 2L, originalText = "b", translatedText = long + " Cau nay ngan.")
+            )
+        )
+        assertEquals("$long\n\n$long Cau nay ngan.", overlayTranscriptText(state))
     }
 }
