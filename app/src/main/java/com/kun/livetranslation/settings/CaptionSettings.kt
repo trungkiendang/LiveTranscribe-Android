@@ -13,6 +13,7 @@ data class CaptionSettings(
     val autoHideOverlay: Boolean = true,
     /** Gemini Live: audio streams over one WebSocket and captions arrive word by word. Experimental. */
     val aiLiveStreaming: Boolean = false,
+    val sherpaOnDevice: Boolean = true,
     val serverBaseUrl: String = DEFAULT_BASE_URL,
     val overlayX: Int = 60,
     val overlayY: Int = 220,

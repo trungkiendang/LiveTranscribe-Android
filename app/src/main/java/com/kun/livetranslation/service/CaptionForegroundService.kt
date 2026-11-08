@@ -122,6 +122,8 @@ class CaptionForegroundService : Service() {
                     ?.let { runCatching { AudioSource.valueOf(it) }.getOrNull() }
                     ?: AudioSource.MIC
                 currentAudioSource = audioSource
+                // A stale flag (session ended without overlay) must not block a fresh start.
+                if (overlayController == null) captionSessionActive.set(false)
                 if (enterForeground(audioSource)) startFlow()
             }
             ACTION_STOP -> stopFlow()
@@ -310,6 +312,7 @@ class CaptionForegroundService : Service() {
                     mediaProjection = mediaProjection,
                     languageCode = sttLanguageCode,
                     localSttClient = app.container.localVoskClient,
+                    sherpa = if (settings.sherpaOnDevice) app.container.sherpaModels else null,
                     aiApi = if (backend == SttBackend.AI) app.container.aiApi else null,
                     languageHint = if (settings.autoDetectSource) null else sttLanguageCode,
                     translateTo = if (oneCall) settings.targetLanguageCode else null,
@@ -364,12 +367,12 @@ class CaptionForegroundService : Service() {
         val source: String, val autoDetect: Boolean, val audioSource: AudioSource,
         val stt: SttBackend, val sttUrl: String, val translation: TranslationBackend,
         val aiProvider: Any, val aiKey: String, val aiBaseUrl: String, val aiSttModel: String,
-        val live: Boolean, val targetBakedIn: String
+        val live: Boolean, val sherpa: Boolean, val targetBakedIn: String
     )
 
     private fun CaptionSettings.pipelineConfig() = PipelineConfig(
         sourceLanguageCode, autoDetectSource, audioSource, sttBackend, sttBaseUrl, translationBackend,
-        aiProvider, aiApiKey, aiBaseUrl, aiSttModel, aiLiveStreaming,
+        aiProvider, aiApiKey, aiBaseUrl, aiSttModel, aiLiveStreaming, sherpaOnDevice,
         // The target language is part of the request in one-call and live modes, so changing it needs a rebuild there.
         if (sttBackend == SttBackend.AI && aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI &&
             (aiLiveStreaming || translationBackend == TranslationBackend.AI)) targetLanguageCode else ""
@@ -630,6 +633,9 @@ class CaptionForegroundService : Service() {
             it.copy(running = false, paused = false, status = RecognitionStatus.ERROR, lastError = message)
         }
         serviceScope.cancel()
+        // Recreated so a start that reuses this instance can still launch coroutines (and show the overlay).
+        serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        overlayReady.value = 0
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
