@@ -204,7 +204,8 @@ class CaptionForegroundService : Service() {
             }
             if (settings.sttBackend == SttBackend.LOCAL_VOSK) {
                 val model = app.container.voskRegistry.installedModelFor(sttLanguageCode)
-                if (model == null) {
+                val sherpaReady = settings.sherpaOnDevice && app.container.sherpaModels.hasModelFor(sttLanguageCode)
+                if (model == null && !sherpaReady) {
                     failAndStop("No on-device model installed for '$sttLanguageCode'. Download one first.")
                     return@launch
                 }

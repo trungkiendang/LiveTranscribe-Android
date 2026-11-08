@@ -55,6 +55,8 @@ class SherpaModelStore(private val context: Context) {
     }
 
     private fun dir(m: SherpaModel) = File(root, m.id)
+    fun hasModelFor(languageCode: String) = modelFor(languageCode)?.let { isInstalled(it) } == true
+
     private fun isInstalled(m: SherpaModel) = m.files.all { File(dir(m), it).length() > 0 }
 
     suspend fun download(m: SherpaModel) = withContext(Dispatchers.IO) {
