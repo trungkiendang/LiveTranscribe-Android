@@ -63,6 +63,7 @@ class OverlayController(
     private val hideControlsTask = Runnable { if (!minimized && !settingsOpen) header?.visibility = View.GONE }
     private var lastSignature = ""
     private var hideScheduled = false
+    private var hasSpoken = false
     private val autoHideTask = Runnable {
         hideScheduled = false
         if (!settingsOpen) root?.visibility = View.INVISIBLE
@@ -95,6 +96,8 @@ class OverlayController(
             x = initialX
             y = initialY
         }
+        // A saved position or size from another orientation/screen could place the box off-screen.
+        clamp(p)
         params = p
 
         // Root is a FrameLayout so we can place resize handle on top
@@ -367,7 +370,9 @@ class OverlayController(
 
     /** Hides the box after [AUTO_HIDE_MS] without new speech; new text, a pause, an error or the settings panel bring it back. */
     private fun applyAutoHide(frame: View, ui: OverlayUiState, activity: Boolean) {
-        val keep = !ui.autoHide || ui.status == RecognitionStatus.PAUSED || !ui.statusDetail.isNullOrBlank() || settingsOpen
+        if (activity && (ui.originalText.isNotBlank() || ui.translatedText.isNotBlank())) hasSpoken = true
+        // Until something was heard the box stays up, so a silent or uncaptured source never looks like a missing overlay.
+        val keep = !ui.autoHide || !hasSpoken || ui.status == RecognitionStatus.PAUSED || !ui.statusDetail.isNullOrBlank() || settingsOpen
         if (keep || activity) {
             handler.removeCallbacks(autoHideTask)
             hideScheduled = false
