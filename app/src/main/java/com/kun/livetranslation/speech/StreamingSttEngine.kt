@@ -43,6 +43,8 @@ class StreamingSttEngine(
     private val mediaProjection: MediaProjection?,
     private val languageCode: String,
     private val localSttClient: LocalVoskSttClient,
+    /** On-device Zipformer models; used instead of Vosk when one is installed for the language. */
+    private val sherpa: SherpaModelStore? = null,
     /** When set, speech goes to Gemini instead of Vosk ([languageHint] null = detect). */
     private val aiApi: com.kun.livetranslation.ai.AiApi? = null,
     private val languageHint: String? = null,
@@ -122,7 +124,7 @@ class StreamingSttEngine(
                 onResult(SpeechResult(text, isFinal = true, translation = translation))
             }
         } else {
-            localSttClient.openSession(languageCode, SAMPLE_RATE)
+            sherpa?.openSession(languageCode) ?: localSttClient.openSession(languageCode, SAMPLE_RATE)
         }
         if (localSession == null) {
             onError(

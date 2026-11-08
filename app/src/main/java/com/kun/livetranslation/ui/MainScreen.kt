@@ -594,6 +594,7 @@ private fun AudioSourceCard(
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
+                SherpaSection(ui.settings.sherpaOnDevice, viewModel::updateSherpaOnDevice)
                 OutlinedButton(
                     onClick = onManageModels,
                     shape = RoundedCornerShape(8.dp)

@@ -132,6 +132,8 @@ android {
         }
         jniLibs {
             useLegacyPackaging = false
+            // x86 is not shipped (abiFilters), but both AARs carry it and the merge task still checks.
+            pickFirsts += "lib/x86/libonnxruntime.so"
         }
     }
 }
@@ -160,6 +162,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     implementation("com.alphacephei:vosk-android:0.3.75")
+    implementation("sherpa:sherpa-onnx-static-link-onnxruntime:2.0.1@aar")
     // Neural voice-activity detection (Silero) for utterance segmentation.
     implementation("com.github.gkonovalov.android-vad:silero:2.0.10")
     implementation("androidx.work:work-runtime-ktx:2.9.1")

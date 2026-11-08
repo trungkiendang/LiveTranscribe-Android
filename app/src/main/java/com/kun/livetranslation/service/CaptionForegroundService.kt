@@ -312,6 +312,7 @@ class CaptionForegroundService : Service() {
                     mediaProjection = mediaProjection,
                     languageCode = sttLanguageCode,
                     localSttClient = app.container.localVoskClient,
+                    sherpa = if (settings.sherpaOnDevice) app.container.sherpaModels else null,
                     aiApi = if (backend == SttBackend.AI) app.container.aiApi else null,
                     languageHint = if (settings.autoDetectSource) null else sttLanguageCode,
                     translateTo = if (oneCall) settings.targetLanguageCode else null,
@@ -366,12 +367,12 @@ class CaptionForegroundService : Service() {
         val source: String, val autoDetect: Boolean, val audioSource: AudioSource,
         val stt: SttBackend, val sttUrl: String, val translation: TranslationBackend,
         val aiProvider: Any, val aiKey: String, val aiBaseUrl: String, val aiSttModel: String,
-        val live: Boolean, val targetBakedIn: String
+        val live: Boolean, val sherpa: Boolean, val targetBakedIn: String
     )
 
     private fun CaptionSettings.pipelineConfig() = PipelineConfig(
         sourceLanguageCode, autoDetectSource, audioSource, sttBackend, sttBaseUrl, translationBackend,
-        aiProvider, aiApiKey, aiBaseUrl, aiSttModel, aiLiveStreaming,
+        aiProvider, aiApiKey, aiBaseUrl, aiSttModel, aiLiveStreaming, sherpaOnDevice,
         // The target language is part of the request in one-call and live modes, so changing it needs a rebuild there.
         if (sttBackend == SttBackend.AI && aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI &&
             (aiLiveStreaming || translationBackend == TranslationBackend.AI)) targetLanguageCode else ""
