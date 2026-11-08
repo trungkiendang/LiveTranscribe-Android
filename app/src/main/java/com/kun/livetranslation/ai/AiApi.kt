@@ -117,6 +117,36 @@ class AiApi(private val settingsRepository: SettingsRepository) {
         }
     }
 
+    /**
+     * Transcribes and translates one clip in a single Gemini request (saves a network round trip).
+     * Returns original to translation.
+     */
+    suspend fun transcribeAndTranslate(cfg: AiConfig, wav: ByteArray, languageHint: String?, targetCode: String): Result<Pair<String, String>> =
+        withContext(Dispatchers.IO) {
+            if (cfg.apiKey.isBlank()) return@withContext Result.failure(IOException("API key is empty"))
+            if (cfg.provider != AiProvider.GEMINI) return@withContext Result.failure(IOException("One-call mode needs Gemini"))
+            val parts = JSONArray()
+                .put(JSONObject().put("text", combinedPrompt(languageHint, targetCode)))
+                .put(
+                    JSONObject().put(
+                        "inline_data",
+                        JSONObject().put("mime_type", "audio/wav").put("data", Base64.encodeToString(wav, Base64.NO_WRAP))
+                    )
+                )
+            val body = JSONObject()
+                .put("contents", JSONArray().put(JSONObject().put("parts", parts)))
+                .put("generationConfig", JSONObject().put("temperature", 0).put("responseMimeType", "application/json"))
+                .toString()
+            send(
+                Request.Builder().url("${cfg.endpoint}/models/${cfg.model.trim()}:generateContent")
+                    .header("x-goog-api-key", cfg.apiKey.trim())
+                    .post(json(body)).build()
+            ).mapCatching { parseCombined(it) }
+        }
+
+    suspend fun transcribeAndTranslate(wav: ByteArray, languageHint: String?, targetCode: String): Pair<String, String>? =
+        transcribeAndTranslate(savedConfig(), wav, languageHint, targetCode).getOrNull()
+
     /** Models the provider says it offers, with whatever details it gives (needs a valid key). */
     suspend fun listModels(cfg: AiConfig): Result<List<AiModelInfo>> = withContext(Dispatchers.IO) {
         if (cfg.apiKey.isBlank()) return@withContext Result.failure(IOException("API key is empty"))
@@ -178,6 +208,18 @@ class AiApi(private val settingsRepository: SettingsRepository) {
             val hint = languageHint?.let { " The spoken language is ${languageName(it)}." } ?: ""
             return "Transcribe the speech in this audio verbatim.$hint " +
                 "Reply with the transcript only. If there is no intelligible speech, reply with nothing."
+        }
+
+        fun combinedPrompt(languageHint: String?, targetCode: String): String {
+            val hint = languageHint?.let { " The spoken language is ${languageName(it)}." } ?: ""
+            return "Transcribe the speech in this audio verbatim, then translate it to ${languageName(targetCode)}.$hint " +
+                "Reply with JSON only: {\"original\": \"<transcript>\", \"translation\": \"<translation>\"}. " +
+                "If there is no intelligible speech, use empty strings."
+        }
+
+        fun parseCombined(body: String): Pair<String, String> {
+            val o = JSONObject(parseGeminiText(body).removePrefix("```json").removeSuffix("```").trim())
+            return o.optString("original").trim() to o.optString("translation").trim()
         }
 
         private fun languageName(code: String): String =

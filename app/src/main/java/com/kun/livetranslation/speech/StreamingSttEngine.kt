@@ -46,6 +46,10 @@ class StreamingSttEngine(
     /** When set, speech goes to Gemini instead of Vosk ([languageHint] null = detect). */
     private val aiApi: com.kun.livetranslation.ai.AiApi? = null,
     private val languageHint: String? = null,
+    /** Cloud AI only: translate in the same request as the transcription (Gemini). */
+    private val translateTo: String? = null,
+    /** Cloud AI only: stream to Gemini Live and get transcript and translation back live. */
+    private val liveTarget: String? = null,
     private val scope: CoroutineScope,
     private val onResult: (SpeechResult) -> Unit,
     private val onError: (String?) -> Unit = {}
@@ -110,9 +114,13 @@ class StreamingSttEngine(
 
     private suspend fun startInternal() {
         // Cloud: the segmenter owns the detector. Local: the capture loop uses it to find pauses.
-        vad = withContext(Dispatchers.Default) { SileroSpeechDetector.create(context) }
-        val localSession: SttSession? = if (aiApi != null) {
-            CloudSttSession(aiApi, languageHint, scope, vad) { text -> onResult(SpeechResult(text, isFinal = true)) }
+        vad = if (liveTarget != null) null else withContext(Dispatchers.Default) { SileroSpeechDetector.create(context) }
+        val localSession: SttSession? = if (aiApi != null && liveTarget != null) {
+            GeminiLiveSttSession(aiApi.savedConfig().apiKey, liveTarget, onResult, onError)
+        } else if (aiApi != null) {
+            CloudSttSession(aiApi, languageHint, scope, vad, translateTo) { text, translation ->
+                onResult(SpeechResult(text, isFinal = true, translation = translation))
+            }
         } else {
             localSttClient.openSession(languageCode, SAMPLE_RATE)
         }

@@ -11,6 +11,8 @@ data class CaptionSettings(
     val showOriginal: Boolean = true,
     /** Fade the caption box away after a few quiet seconds; it returns with the next speech. */
     val autoHideOverlay: Boolean = true,
+    /** Gemini Live: audio streams over one WebSocket and captions arrive word by word. Experimental. */
+    val aiLiveStreaming: Boolean = false,
     val serverBaseUrl: String = DEFAULT_BASE_URL,
     val overlayX: Int = 60,
     val overlayY: Int = 220,

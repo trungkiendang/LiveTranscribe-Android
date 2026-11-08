@@ -137,6 +137,8 @@ object UiStringCatalog {
         "Opacity: %d%%",
         "Show original text",
         "Hide when quiet",
+        "Live streaming (Gemini, experimental)",
+        "Streams audio continuously and shows the transcript and translation as you speak. Lowest delay for video.",
         "Add",
         "Overlay theme",
         "Overlay font",

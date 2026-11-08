@@ -1,5 +1,7 @@
 package com.kun.livetranslation.speech
 
+import android.os.SystemClock
+import android.util.Log
 import com.kun.livetranslation.ai.AiApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -20,17 +22,23 @@ class CloudSttSession(
     private val languageHint: String?,
     private val scope: CoroutineScope,
     private val speechDetector: SileroSpeechDetector? = null,
-    private val onText: (String) -> Unit
+    /** Non-null: ask for the transcript and its translation in one request (Gemini only). */
+    private val translateTo: String? = null,
+    private val onText: (text: String, translation: String?) -> Unit
 ) : SttSession {
 
-    private val segmenter = UtteranceSegmenter(speechDetector?.let { d -> { chunk: ByteArray -> d.isSpeech(chunk) } })
-    private val pending = Channel<Deferred<String?>>(Channel.UNLIMITED)
+    // 2 s clips: continuous speech (video) gets a caption about every 2 s instead of 3 s.
+    private val segmenter = UtteranceSegmenter(
+        speechDetector?.let { d -> { chunk: ByteArray -> d.isSpeech(chunk) } },
+        maxUtteranceBytes = 2 * UtteranceSegmenter.BYTES_PER_SECOND
+    )
+    private val pending = Channel<Deferred<Pair<String, String?>?>>(Channel.UNLIMITED)
 
     init {
         scope.launch {
             for (request in pending) {
-                val text = request.await()?.trim().orEmpty()
-                if (text.length >= 2 && !text.startsWith("[")) onText(text)
+                val (text, translation) = request.await() ?: continue
+                if (text.length >= 2 && !text.startsWith("[")) onText(text, translation?.takeIf { it.isNotBlank() })
             }
         }
     }
@@ -41,7 +49,18 @@ class CloudSttSession(
     }
 
     private fun send(clip: ByteArray) {
-        pending.trySend(scope.async { api.transcribe(WavEncoder.encode(clip), languageHint) })
+        val queuedAt = SystemClock.elapsedRealtime()
+        pending.trySend(scope.async {
+            val wav = WavEncoder.encode(clip)
+            val result: Pair<String, String?>? = if (translateTo != null) {
+                api.transcribeAndTranslate(wav, languageHint, translateTo)?.let { it.first to it.second }
+            } else {
+                api.transcribe(wav, languageHint)?.let { it.trim() to null }
+            }
+            // Cloud latency per clip: how long the request took, on top of the clip's own length.
+            Log.d(TAG, "cloud clip ${clip.size / UtteranceSegmenter.BYTES_PER_SECOND.toDouble()} s answered in ${SystemClock.elapsedRealtime() - queuedAt} ms (oneCall=${translateTo != null})")
+            result
+        })
     }
 
     override fun finish(): String {
@@ -53,4 +72,6 @@ class CloudSttSession(
         speechDetector?.close()
         pending.close() // clips already sent still finish and are delivered
     }
+
+    private companion object { const val TAG = "CloudSttSession" }
 }
