@@ -122,6 +122,8 @@ class CaptionForegroundService : Service() {
                     ?.let { runCatching { AudioSource.valueOf(it) }.getOrNull() }
                     ?: AudioSource.MIC
                 currentAudioSource = audioSource
+                // A stale flag (session ended without overlay) must not block a fresh start.
+                if (overlayController == null) captionSessionActive.set(false)
                 if (enterForeground(audioSource)) startFlow()
             }
             ACTION_STOP -> stopFlow()
@@ -630,6 +632,9 @@ class CaptionForegroundService : Service() {
             it.copy(running = false, paused = false, status = RecognitionStatus.ERROR, lastError = message)
         }
         serviceScope.cancel()
+        // Recreated so a start that reuses this instance can still launch coroutines (and show the overlay).
+        serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        overlayReady.value = 0
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

@@ -42,6 +42,10 @@ import com.kun.livetranslation.ai.AiTestReport
 import com.kun.livetranslation.ai.ModelOption
 import com.kun.livetranslation.ui.l10n.LocalUiStrings
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Search
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -245,15 +249,19 @@ private fun ModelField(
     val t = LocalUiStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onChange,
-                label = { Text(label) },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-            FilledTonalButton(onClick = onChoose, shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                Text(t["Choose"])
+            Box(Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(label) },
+                    placeholder = { Text(t["Tap to choose"]) },
+                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // The text field swallows taps, so an overlay captures them for the whole field.
+                Box(Modifier.matchParentSize().clickable(onClick = onChoose))
             }
         }
         details?.let { ModelDetails(it) }
@@ -333,12 +341,23 @@ private fun ModelPickerDialog(
     onPick: (String) -> Unit
 ) {
     val t = LocalUiStrings.current
+    var query by remember { mutableStateOf("") }
+    val q = query.trim()
+    val shown = options.filter { q.isEmpty() || it.id.contains(q, true) || it.info?.displayName?.contains(q, true) == true }
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(t["Close"]) } },
         title = { Text(t["Choose a model"]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text(t["Search models"]) },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 when {
                     loading -> Text(t["Loading…"], style = MaterialTheme.typography.bodySmall)
                     error != null -> Text("✗ $error", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -348,7 +367,14 @@ private fun ModelPickerDialog(
                     Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    options.forEach { m ->
+                    if (q.isNotEmpty() && options.none { it.id.equals(q, true) }) {
+                        Text(
+                            "${t["Use"]} \"$q\"",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth().clickable { onPick(q) }.padding(vertical = 8.dp)
+                        )
+                    }
+                    shown.forEach { m ->
                         Column(Modifier.fillMaxWidth().clickable { onPick(m.id) }.padding(vertical = 8.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(m.id, style = MaterialTheme.typography.bodyMedium, fontWeight = if (m.recommended) FontWeight.Bold else FontWeight.Normal)
