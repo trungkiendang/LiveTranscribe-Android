@@ -224,7 +224,7 @@ fun MainScreen(
             )
             // Only shown while something is missing; all-green checkmarks are noise.
             if (!permissionReady) PermissionsCard(ui, onRequestAudioPermission, onOpenOverlaySettings)
-            AudioSourceCard(ui, viewModel, onManageModels = { showVoskSheet = true })
+            AudioSourceCard(ui, viewModel, onOpenSettings = onOpenSettings)
             LanguageCard(
                 ui = ui,
                 viewModel = viewModel,
@@ -500,7 +500,7 @@ private fun PermissionRow(label: String, granted: Boolean, onGrant: () -> Unit) 
 private fun AudioSourceCard(
     ui: MainUiState,
     viewModel: MainViewModel,
-    onManageModels: () -> Unit
+    onOpenSettings: () -> Unit
 ) {
     val t = LocalUiStrings.current
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
@@ -536,82 +536,24 @@ private fun AudioSourceCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(t["Transcription engine"], style = MaterialTheme.typography.labelMedium)
-            val isSttUnsupported = ui.deviceSpecs?.tier == CompatibilityTier.UNSUPPORTED
-            val noAiKey = ui.settings.aiApiKey.isBlank()
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EngineOption(
-                    title = t["Local Vosk"],
-                    subtitle = t["Runs on this device, works offline. Live words as you speak."],
-                    icon = if (isSttUnsupported) Icons.Filled.Lock else Icons.Filled.Mic,
-                    selected = ui.settings.sttBackend == SttBackend.LOCAL_VOSK,
-                    badge = t["Offline"],
-                    onClick = { viewModel.updateSttBackend(SttBackend.LOCAL_VOSK) }
-                )
-                EngineOption(
-                    title = t["Cloud AI"],
-                    subtitle = t["Sends your speech to your AI provider a few seconds at a time. Most accurate, needs internet."],
-                    icon = Icons.Filled.Cloud,
-                    selected = ui.settings.sttBackend == SttBackend.AI,
-                    badge = if (noAiKey) t["Needs API key"] else t["Online"],
-                    badgeIsWarning = noAiKey,
-                    onClick = { viewModel.updateSttBackend(SttBackend.AI) }
-                )
-                EngineOption(
-                    title = if (isSystem) t["Remote Whisper"] else t["Android built-in"],
-                    subtitle = if (isSystem) t["Your own Whisper server (set its URL below)."]
-                    else t["Google's recognizer built into Android. Microphone only."],
-                    icon = Icons.Filled.Cloud,
-                    selected = ui.settings.sttBackend == SttBackend.REMOTE_WHISPER,
-                    onClick = { viewModel.updateSttBackend(SttBackend.REMOTE_WHISPER) }
-                )
+            // Engines live in Settings; here only a one-line summary so the two screens never repeat each other.
+            val speech = when (ui.settings.sttBackend) {
+                SttBackend.LOCAL_VOSK -> t["On this phone"]
+                SttBackend.AI -> t["Cloud AI"]
+                SttBackend.REMOTE_WHISPER -> if (isSystem) t["Remote Whisper"] else t["Android built-in"]
             }
-            if (ui.settings.sttBackend == SttBackend.AI && ui.settings.aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(t["Live streaming (Gemini, experimental)"], style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            t["Streams audio continuously and shows the transcript and translation as you speak. Lowest delay for video."],
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = ui.settings.aiLiveStreaming, onCheckedChange = viewModel::updateAiLiveStreaming)
-                }
+            val translation = when (ui.settings.translationBackend) {
+                TranslationBackend.ML_KIT, TranslationBackend.SYSTEM -> t["On this phone"]
+                TranslationBackend.AI -> t["Cloud AI"]
+                TranslationBackend.LIBRE_TRANSLATE -> t["LibreTranslate"]
             }
-            if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
-                val installed = ui.voskModels.count { it.installed }
-                val anyLargeInstalled = ui.voskModels.any { it.installed && it.quality == ModelQuality.LARGE }
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = t.format("Runs on this phone and works offline. Speech models installed: %d.", installed),
+                    "${t["Speech recognition"]}: $speech\n${t["Translation"]}: $translation",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.weight(1f)
                 )
-                if (!anyLargeInstalled) {
-                    Text(
-                        text = t["Tip: for better accuracy, tap Manage on-device models and install a LARGE model for the languages you use. Each is 80 MB to 2 GB and works offline after download."],
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-                SherpaSection(ui.settings.sherpaOnDevice, viewModel::updateSherpaOnDevice)
-                OutlinedButton(
-                    onClick = onManageModels,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(t["Manage on-device models"])
-                }
-            } else if (ui.settings.sttBackend != SttBackend.AI) {
-                Text(
-                    text = if (isSystem)
-                        t["Sends captured audio to the configured Whisper ASR endpoint."]
-                    else
-                        t["Uses Android's built-in recognizer. Available locales depend on what's installed on this device."],
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                TextButton(onClick = onOpenSettings) { Text(t["Change in Settings"]) }
             }
         }
     }
@@ -1206,6 +1148,119 @@ private fun OverlaySettingsCard(
     }
 }
 
+// ── Speech recognition card (Settings) ──
+
+@Composable
+private fun EngineGroup(title: String) {
+    Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+}
+
+@Composable
+private fun SpeechEngineCard(
+    ui: MainUiState,
+    viewModel: MainViewModel,
+    sttUrl: String,
+    onSttUrlChange: (String) -> Unit,
+    onSaveSttUrl: () -> Unit,
+    onManageModels: () -> Unit
+) {
+    val t = LocalUiStrings.current
+    val isSystem = ui.settings.audioSource == AudioSource.SYSTEM
+    val isSttUnsupported = ui.deviceSpecs?.tier == CompatibilityTier.UNSUPPORTED
+    val noAiKey = ui.settings.aiApiKey.isBlank()
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(t["Speech recognition"])
+            EngineGroup(t["On this phone"])
+            EngineOption(
+                title = t["Local Vosk"],
+                subtitle = t["Runs on this device, works offline. Live words as you speak."],
+                icon = if (isSttUnsupported) Icons.Filled.Lock else Icons.Filled.Mic,
+                selected = ui.settings.sttBackend == SttBackend.LOCAL_VOSK,
+                badge = t["Offline"],
+                onClick = { viewModel.updateSttBackend(SttBackend.LOCAL_VOSK) }
+            )
+            if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
+                val installed = ui.voskModels.count { it.installed }
+                Text(
+                    text = t.format("Runs on this phone and works offline. Speech models installed: %d.", installed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                SherpaSection(ui.settings.sherpaOnDevice, viewModel::updateSherpaOnDevice)
+                OutlinedButton(onClick = onManageModels, shape = RoundedCornerShape(8.dp)) {
+                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(t["Manage on-device models"])
+                }
+            }
+
+            EngineGroup(t["Cloud"])
+            EngineOption(
+                title = t["Cloud AI"],
+                subtitle = t["Sends your speech to your AI provider a few seconds at a time. Most accurate, needs internet."],
+                icon = Icons.Filled.Cloud,
+                selected = ui.settings.sttBackend == SttBackend.AI,
+                badge = if (noAiKey) t["Needs API key"] else t["Online"],
+                badgeIsWarning = noAiKey,
+                onClick = { viewModel.updateSttBackend(SttBackend.AI) }
+            )
+            if (ui.settings.sttBackend == SttBackend.AI &&
+                ui.settings.aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(t["Live streaming (Gemini, experimental)"], style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            t["Streams audio continuously and shows the transcript and translation as you speak. Lowest delay for video."],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = ui.settings.aiLiveStreaming, onCheckedChange = viewModel::updateAiLiveStreaming)
+                }
+            }
+
+            EngineGroup(t["Your server or the system"])
+            EngineOption(
+                title = if (isSystem) t["Remote Whisper"] else t["Android built-in"],
+                subtitle = if (isSystem) t["Your own Whisper server (set its URL below)."]
+                else t["Google's recognizer built into Android. Microphone only."],
+                icon = Icons.Filled.Cloud,
+                selected = ui.settings.sttBackend == SttBackend.REMOTE_WHISPER,
+                onClick = { viewModel.updateSttBackend(SttBackend.REMOTE_WHISPER) }
+            )
+            if (ui.settings.sttBackend == SttBackend.REMOTE_WHISPER) {
+                if (isSystem) {
+                    OutlinedTextField(
+                        value = sttUrl,
+                        onValueChange = onSttUrlChange,
+                        label = { Text(t["Speech-to-Text URL (Whisper)"]) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Text(
+                        text = t.format("Example: %s", "http://<your-pc-ip>:9000/asr?output=json"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FilledTonalButton(
+                        onClick = onSaveSttUrl,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(t["Save STT URL"]) }
+                } else {
+                    Text(
+                        t["Uses Android's built-in recognizer. Available locales depend on what's installed on this device."],
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ── Server Card ──
 
 @Composable
@@ -1215,11 +1270,7 @@ private fun ServerCard(
     onTranslateUrlChange: (String) -> Unit,
     onSaveTranslateUrl: () -> Unit,
     onRefreshLibre: () -> Unit,
-    onSelectTranslationBackend: (TranslationBackend) -> Unit,
-    sttUrl: String,
-    onSttUrlChange: (String) -> Unit,
-    onSaveSttUrl: () -> Unit,
-    showStt: Boolean
+    onSelectTranslationBackend: (TranslationBackend) -> Unit
 ) {
     val t = LocalUiStrings.current
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
@@ -1227,12 +1278,22 @@ private fun ServerCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                SectionLabel(t["Translation engine"])
+                SectionLabel(t["Translation"])
+            }
+            if (ui.settings.sttBackend == SttBackend.AI && ui.settings.translationBackend == TranslationBackend.AI &&
+                ui.settings.aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI
+            ) {
+                Text(
+                    "✓ ${t["Speech and translation go in one request, which is the fastest cloud setup."]}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
             val isTranslateUnsupported = ui.deviceSpecs?.tier == CompatibilityTier.UNSUPPORTED
             val noAiKey = ui.settings.aiApiKey.isBlank()
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                EngineGroup(t["On this phone"])
                 EngineOption(
                     title = t["On-device (ML Kit)"],
                     subtitle = t["Google ML Kit on this device. A ~30 MB model per language pair downloads once, then works offline."],
@@ -1240,15 +1301,6 @@ private fun ServerCard(
                     selected = ui.settings.translationBackend == TranslationBackend.ML_KIT,
                     badge = t["Offline"],
                     onClick = { onSelectTranslationBackend(TranslationBackend.ML_KIT) }
-                )
-                EngineOption(
-                    title = t["Cloud AI"],
-                    subtitle = t["Your AI provider translates the text, with better context. Add your API key in the AI provider section above; without one, ML Kit is used."],
-                    icon = Icons.Filled.Cloud,
-                    selected = ui.settings.translationBackend == TranslationBackend.AI,
-                    badge = if (noAiKey) t["Needs API key"] else t["Online"],
-                    badgeIsWarning = noAiKey,
-                    onClick = { onSelectTranslationBackend(TranslationBackend.AI) }
                 )
                 // Only offered on Samsung phones, where One UI may provide a system translator.
                 if (SystemTranslationRepository.isOfferedOnThisDevice()) {
@@ -1261,6 +1313,17 @@ private fun ServerCard(
                         onClick = { onSelectTranslationBackend(TranslationBackend.SYSTEM) }
                     )
                 }
+                EngineGroup(t["Cloud"])
+                EngineOption(
+                    title = t["Cloud AI"],
+                    subtitle = t["Your AI provider translates the text, with better context. Add your API key in the AI provider section above; without one, ML Kit is used."],
+                    icon = Icons.Filled.Cloud,
+                    selected = ui.settings.translationBackend == TranslationBackend.AI,
+                    badge = if (noAiKey) t["Needs API key"] else t["Online"],
+                    badgeIsWarning = noAiKey,
+                    onClick = { onSelectTranslationBackend(TranslationBackend.AI) }
+                )
+                EngineGroup(t["Your server or the system"])
                 EngineOption(
                     title = t["LibreTranslate"],
                     subtitle = t["Your own LibreTranslate server (set its URL below)."],
@@ -1306,27 +1369,6 @@ private fun ServerCard(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-            }
-
-            if (showStt) {
-                Spacer(Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = sttUrl,
-                    onValueChange = onSttUrlChange,
-                    label = { Text(t["Speech-to-Text URL (Whisper)"]) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Text(
-                    text = t.format("Example: %s", "http://<your-pc-ip>:9000/asr?output=json"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                FilledTonalButton(
-                    onClick = onSaveSttUrl,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(t["Save STT URL"]) }
             }
         }
     }
@@ -1798,7 +1840,38 @@ fun SettingsScreen(
         }
     }
     val updatesCard: @Composable () -> Unit = { UpdatesCard(ui, viewModel) }
-    val aiCard: @Composable () -> Unit = { AiProviderCard(saved = ui.settings.aiConfig, onSave = viewModel::updateAiConfig) }
+    var showAiSetup by remember { mutableStateOf(false) }
+    var showVoskSheet by remember { mutableStateOf(false) }
+    val aiInUse = ui.settings.sttBackend == SttBackend.AI || ui.settings.translationBackend == TranslationBackend.AI
+    val aiCard: @Composable () -> Unit = {
+        if (aiInUse || showAiSetup) {
+            AiProviderCard(saved = ui.settings.aiConfig, onSave = viewModel::updateAiConfig)
+        } else {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        SectionLabel(t["Cloud AI account"])
+                        Text(
+                            t["Not used by the current settings."],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = { showAiSetup = true }) { Text(t["Set up"]) }
+                }
+            }
+        }
+    }
+    val speechCard: @Composable () -> Unit = {
+        SpeechEngineCard(
+            ui = ui,
+            viewModel = viewModel,
+            sttUrl = sttUrlDraft,
+            onSttUrlChange = { sttUrlDraft = it },
+            onSaveSttUrl = { viewModel.updateSttUrl(sttUrlDraft) },
+            onManageModels = { showVoskSheet = true }
+        )
+    }
     val engineCard: @Composable () -> Unit = {
         ServerCard(
             ui = ui,
@@ -1806,12 +1879,7 @@ fun SettingsScreen(
             onTranslateUrlChange = { translateUrlDraft = it },
             onSaveTranslateUrl = { viewModel.updateBaseUrl(translateUrlDraft) },
             onRefreshLibre = { viewModel.refreshLibreCatalog() },
-            onSelectTranslationBackend = viewModel::updateTranslationBackend,
-            sttUrl = sttUrlDraft,
-            onSttUrlChange = { sttUrlDraft = it },
-            onSaveSttUrl = { viewModel.updateSttUrl(sttUrlDraft) },
-            showStt = ui.settings.audioSource == AudioSource.SYSTEM &&
-                ui.settings.sttBackend == SttBackend.REMOTE_WHISPER
+            onSelectTranslationBackend = viewModel::updateTranslationBackend
         )
     }
     val overlayCard: @Composable () -> Unit = { OverlaySettingsCard(ui = ui, viewModel = viewModel) }
@@ -1845,8 +1913,8 @@ fun SettingsScreen(
         )
     }
 
-    val left = listOf(statusBarAndUpdates, updatesCard, aiCard, engineCard)
-    val right = listOf(overlayCard, toolsCard, languageCard, deviceCard)
+    val left = listOf(speechCard, engineCard, aiCard, overlayCard)
+    val right = listOf(toolsCard, languageCard, statusBarAndUpdates, updatesCard, deviceCard)
 
     Scaffold(
         modifier = modifier,
@@ -1884,6 +1952,16 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) { (left + right).forEach { it() } }
             }
+        }
+        if (showVoskSheet) {
+            VoskModelSheet(
+                models = ui.voskModels,
+                progress = ui.voskDownloadProgress,
+                errors = ui.voskDownloadErrors,
+                onDismiss = { showVoskSheet = false },
+                onDownload = viewModel::downloadVoskModel,
+                onDelete = viewModel::deleteVoskModel,
+            )
         }
     }
 }

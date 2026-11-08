@@ -26,6 +26,13 @@ class TranscriptHistoryStore private constructor(private val file: File) {
     suspend fun add(entry: TranscriptEntry) = mutex.withLock {
         withContext(Dispatchers.IO) {
             val arr = readArray()
+            // Same line twice within seconds (e.g. two pipelines briefly alive) is one entry.
+            arr.optJSONObject(arr.length() - 1)?.let { last ->
+                if (last.optString("originalText") == entry.originalText &&
+                    last.optString("translatedText") == entry.translatedText &&
+                    entry.timestamp - last.optLong("timestamp") in 0..DUPLICATE_WINDOW_MS
+                ) return@withContext
+            }
             arr.put(entry.toJson())
             while (arr.length() > policy.maxEntries) arr.remove(0)
             if (policy.retainHistory) atomicWrite(arr.toString()) else {
@@ -139,6 +146,7 @@ class TranscriptHistoryStore private constructor(private val file: File) {
 
     companion object {
         private const val MAX_ENTRIES = 500
+        private const val DUPLICATE_WINDOW_MS = 10_000L
     }
 }
 

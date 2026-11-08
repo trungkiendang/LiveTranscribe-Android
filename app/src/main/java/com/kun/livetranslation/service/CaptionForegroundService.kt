@@ -122,8 +122,6 @@ class CaptionForegroundService : Service() {
                     ?.let { runCatching { AudioSource.valueOf(it) }.getOrNull() }
                     ?: AudioSource.MIC
                 currentAudioSource = audioSource
-                // A stale flag (session ended without overlay) must not block a fresh start.
-                if (overlayController == null) captionSessionActive.set(false)
                 if (enterForeground(audioSource)) startFlow()
             }
             ACTION_STOP -> stopFlow()
