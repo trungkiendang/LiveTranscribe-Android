@@ -212,6 +212,10 @@ class MainViewModel(
         viewModelScope.launch { container.settingsRepository.update { it.copy(showOriginal = show) } }
     }
 
+    fun updateAiLiveStreaming(on: Boolean) {
+        viewModelScope.launch { container.settingsRepository.update { it.copy(aiLiveStreaming = on) } }
+    }
+
     fun updateSaveHistory(save: Boolean) {
         viewModelScope.launch { container.settingsRepository.update { it.copy(saveHistory = save) } }
     }

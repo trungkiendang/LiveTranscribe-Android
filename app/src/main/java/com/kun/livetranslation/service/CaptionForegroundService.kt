@@ -266,7 +266,8 @@ class CaptionForegroundService : Service() {
                         lastError = null
                     )
                 }
-                queueTranslation(transcript, candidateId, result.isFinal)
+                if (result.translation != null) applyEngineTranslation(transcript, result)
+                else queueTranslation(transcript, candidateId, result.isFinal)
             }
 
             val mediaProjection = if (currentAudioSource == AudioSource.SYSTEM) {
@@ -297,6 +298,10 @@ class CaptionForegroundService : Service() {
             //       mic     → AndroidSpeechRecognizerManager (Google recognizer; kept as fallback)
             val backend = settings.sttBackend
             val useStreaming = backend == SttBackend.LOCAL_VOSK || backend == SttBackend.AI
+            val gemini = backend == SttBackend.AI && settings.aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI
+            // Gemini can transcribe and translate in one request, or stream both live; either way no separate translate step.
+            val live = gemini && settings.aiLiveStreaming
+            val oneCall = gemini && !live && settings.translationBackend == TranslationBackend.AI
 
             if (useStreaming) {
                 val engine = StreamingSttEngine(
@@ -307,6 +312,8 @@ class CaptionForegroundService : Service() {
                     localSttClient = app.container.localVoskClient,
                     aiApi = if (backend == SttBackend.AI) app.container.aiApi else null,
                     languageHint = if (settings.autoDetectSource) null else sttLanguageCode,
+                    translateTo = if (oneCall) settings.targetLanguageCode else null,
+                    liveTarget = if (live) settings.targetLanguageCode else null,
                     scope = serviceScope,
                     onResult = onSpeechResult,
                     onError = errorSink
@@ -356,12 +363,16 @@ class CaptionForegroundService : Service() {
     private data class PipelineConfig(
         val source: String, val autoDetect: Boolean, val audioSource: AudioSource,
         val stt: SttBackend, val sttUrl: String, val translation: TranslationBackend,
-        val aiProvider: Any, val aiKey: String, val aiBaseUrl: String, val aiSttModel: String
+        val aiProvider: Any, val aiKey: String, val aiBaseUrl: String, val aiSttModel: String,
+        val live: Boolean, val targetBakedIn: String
     )
 
     private fun CaptionSettings.pipelineConfig() = PipelineConfig(
         sourceLanguageCode, autoDetectSource, audioSource, sttBackend, sttBaseUrl, translationBackend,
-        aiProvider, aiApiKey, aiBaseUrl, aiSttModel
+        aiProvider, aiApiKey, aiBaseUrl, aiSttModel, aiLiveStreaming,
+        // The target language is part of the request in one-call and live modes, so changing it needs a rebuild there.
+        if (sttBackend == SttBackend.AI && aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI &&
+            (aiLiveStreaming || translationBackend == TranslationBackend.AI)) targetLanguageCode else ""
     )
 
     /**
@@ -459,6 +470,40 @@ class CaptionForegroundService : Service() {
         themeId = settings.overlayThemeId,
         fontId = settings.overlayFontId
     )
+
+    /** The engine delivered the translation with the text (one-call / live modes): show it, no separate translate step. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val engineResultDispatcher = Dispatchers.IO.limitedParallelism(1) // keeps results in speaking order
+
+    private fun applyEngineTranslation(transcript: String, result: SpeechResult) {
+        serviceScope.launch(engineResultDispatcher) { applyEngineTranslationNow(transcript, result) }
+    }
+
+    private suspend fun applyEngineTranslationNow(transcript: String, result: SpeechResult) {
+        val translation = applyGlossary(result.translation.orEmpty(), app.container.glossary.list())
+        if (translation.isBlank()) return
+        app.container.runtimeStore.update {
+            val line = it.transcriptLines.lastOrNull { l -> l.originalText == transcript }
+            it.copy(
+                translatedText = translation,
+                transcriptLines = if (line != null) updateTranscriptTranslation(it.transcriptLines, line.id, translation) else it.transcriptLines,
+                status = if (paused) RecognitionStatus.PAUSED else RecognitionStatus.LISTENING
+            )
+        }
+        if (result.isFinal) {
+            val s = app.container.settingsRepository.settingsFlow.first()
+            if (s.saveHistory) {
+                app.container.transcriptHistory.add(
+                    TranscriptEntry(
+                        originalText = transcript,
+                        translatedText = translation,
+                        sourceLanguage = if (currentAudioSource == AudioSource.SYSTEM) "auto" else s.sourceLanguageCode,
+                        targetLanguage = s.targetLanguageCode
+                    )
+                )
+            }
+        }
+    }
 
     private fun queueTranslation(text: String, lineId: Long, isFinal: Boolean = false) {
         synchronized(this) {

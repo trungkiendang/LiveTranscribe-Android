@@ -17,7 +17,9 @@ import kotlin.math.abs
  */
 class UtteranceSegmenter(
     /** Decides whether a chunk holds speech; null = loudness against the adaptive noise floor. */
-    private val isSpeech: ((ByteArray) -> Boolean)? = null
+    private val isSpeech: ((ByteArray) -> Boolean)? = null,
+    /** Continuous speech is cut after this much audio; shorter = captions sooner but less context per clip. */
+    private val maxUtteranceBytes: Int = MAX_UTTERANCE_BYTES
 ) {
     private val recentEnergy = ArrayDeque<Int>()
     private val preRoll = ArrayDeque<ByteArray>()
@@ -67,7 +69,7 @@ class UtteranceSegmenter(
             quietChunks++
         }
         if (quietChunks >= END_QUIET_CHUNKS) return finish()
-        if (chunks.sumOf { it.size } >= MAX_UTTERANCE_BYTES) return cutAtQuietest()
+        if (chunks.sumOf { it.size } >= maxUtteranceBytes) return cutAtQuietest()
         return null
     }
 

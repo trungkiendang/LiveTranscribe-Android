@@ -566,6 +566,19 @@ private fun AudioSourceCard(
                     onClick = { viewModel.updateSttBackend(SttBackend.REMOTE_WHISPER) }
                 )
             }
+            if (ui.settings.sttBackend == SttBackend.AI && ui.settings.aiProvider == com.kun.livetranslation.ai.AiProvider.GEMINI) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(t["Live streaming (Gemini, experimental)"], style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            t["Streams audio continuously and shows the transcript and translation as you speak. Lowest delay for video."],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = ui.settings.aiLiveStreaming, onCheckedChange = viewModel::updateAiLiveStreaming)
+                }
+            }
             if (ui.settings.sttBackend == SttBackend.LOCAL_VOSK) {
                 val installed = ui.voskModels.count { it.installed }
                 val anyLargeInstalled = ui.voskModels.any { it.installed && it.quality == ModelQuality.LARGE }
@@ -589,7 +602,7 @@ private fun AudioSourceCard(
                     Spacer(Modifier.width(6.dp))
                     Text(t["Manage on-device models"])
                 }
-            } else {
+            } else if (ui.settings.sttBackend != SttBackend.AI) {
                 Text(
                     text = if (isSystem)
                         t["Sends captured audio to the configured Whisper ASR endpoint."]
