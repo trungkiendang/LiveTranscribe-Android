@@ -96,6 +96,8 @@ class OverlayController(
             x = initialX
             y = initialY
         }
+        // A saved position or size from another orientation/screen could place the box off-screen.
+        clamp(p)
         params = p
 
         // Root is a FrameLayout so we can place resize handle on top
